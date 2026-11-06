@@ -27,10 +27,13 @@ app.use('/api', (_req, res) => {
 });
 
 // Web app (built by `npm run build:web`); hash routing, so index.html serves every page.
-app.use(express.static(webDir));
+// index.html is never cached (so a new deploy shows up immediately); app.js/app.css are
+// versioned by the build, so they can be cached.
+const noCache = { 'Cache-Control': 'no-cache, no-store, must-revalidate' };
+app.use(express.static(webDir, { index: false }));
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
-  res.sendFile(path.join(webDir, 'index.html'));
+  res.set(noCache).sendFile(path.join(webDir, 'index.html'));
 });
 
 app.use(errorHandler);

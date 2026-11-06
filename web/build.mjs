@@ -1,6 +1,6 @@
 // Bundles the web app into web/dist (served by Express). `--watch` rebuilds on change.
 import { build, context } from 'esbuild';
-import { copyFile, mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +22,11 @@ const options = {
 };
 
 await mkdir(outdir, { recursive: true });
-await copyFile(path.join(root, 'index.html'), path.join(outdir, 'index.html'));
+// Stamp the asset links with the build time so browsers always load the newest version after a deploy.
+const stamp = Date.now().toString(36);
+const html = (await readFile(path.join(root, 'index.html'), 'utf8'))
+  .replace('/app.css"', `/app.css?v=${stamp}"`)
+  .replace('/app.js"', `/app.js?v=${stamp}"`);
+await writeFile(path.join(outdir, 'index.html'), html);
 if (watch) await (await context(options)).watch();
 else await build(options);

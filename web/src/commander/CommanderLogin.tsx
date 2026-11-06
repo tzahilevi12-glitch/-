@@ -14,7 +14,7 @@ export function CommanderLogin() {
     setError(null);
     try {
       const res = await api<{ token: string; user: Me }>('/public/commander', { method: 'POST', body: { fullName: fullName.trim(), pin } });
-      setSession({ token: res.token, role: res.user.role, fullName: res.user.fullName });
+      setSession({ token: res.token, role: res.user.role, fullName: res.user.fullName }, 'commander');
       location.hash = '#/commander';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'הכניסה נכשלה.');

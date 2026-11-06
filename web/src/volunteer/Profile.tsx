@@ -13,8 +13,8 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
     setBusy(true);
     try {
       const updated = await api<Me>('/me', { method: 'PATCH', body: { fullName: fullName.trim(), hasDrivingChip: chip } });
-      const s = getSession();
-      if (s) setSession({ ...s, fullName: updated.fullName });
+      const s = getSession('volunteer');
+      if (s) setSession({ ...s, fullName: updated.fullName }, 'volunteer');
       onSaved(updated);
       toast('הפרופיל נשמר.');
     } catch (e) {
@@ -28,7 +28,7 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
     try {
       await api('/me/logout', { method: 'POST' });
     } finally {
-      setSession(null);
+      setSession(null, 'volunteer');
       location.hash = '#/';
     }
   }

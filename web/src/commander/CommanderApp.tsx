@@ -5,7 +5,7 @@ import { Volunteers } from './Volunteers.tsx';
 import { WeekView } from './WeekView.tsx';
 
 export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
-  const session = getSession();
+  const session = getSession('commander');
   const [refreshKey, setRefreshKey] = useState(0);
   const onNewAlert = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -13,7 +13,7 @@ export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
     try {
       await api('/me/logout', { method: 'POST' });
     } finally {
-      setSession(null);
+      setSession(null, 'commander');
       location.hash = '#/commander';
     }
   }

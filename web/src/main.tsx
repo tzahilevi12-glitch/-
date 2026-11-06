@@ -1,7 +1,7 @@
 import './app.css';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { getSession } from './api.ts';
+import { getSession, isCommanderHash } from './api.ts';
 import { Toaster } from './ui.tsx';
 import { EnterScreen } from './volunteer/EnterScreen.tsx';
 import { VolunteerApp } from './volunteer/VolunteerApp.tsx';
@@ -18,29 +18,39 @@ function useHash() {
   return hash;
 }
 
-function useSession() {
-  const [session, setS] = useState(getSession);
+/** Re-render when either sign-in changes. */
+function useSessionVersion() {
+  const [v, setV] = useState(0);
   useEffect(() => {
-    const on = () => setS(getSession());
+    const on = () => setV((x) => x + 1);
     window.addEventListener('pv:session', on);
-    return () => window.removeEventListener('pv:session', on);
+    window.addEventListener('storage', on);
+    return () => {
+      window.removeEventListener('pv:session', on);
+      window.removeEventListener('storage', on);
+    };
   }, []);
-  return session;
+  return v;
 }
 
+/**
+ * Routing:
+ *   #/commander, #/commander/volunteers → commander area (its own sign-in)
+ *   everything else, including "/" and "#/" → volunteer area
+ * The base URL never redirects to the commander area.
+ */
 function App() {
   const hash = useHash();
-  const session = useSession();
+  useSessionVersion();
 
-  if (hash.startsWith('#/commander')) {
-    if (session?.role !== 'ADMIN') return <CommanderLogin />;
-    return <CommanderApp tab={hash.startsWith('#/commander/volunteers') ? 'volunteers' : 'roster'} />;
+  if (isCommanderHash(hash)) {
+    const session = getSession('commander');
+    if (!session) return <CommanderLogin />;
+    return <CommanderApp tab={hash === '#/commander/volunteers' ? 'volunteers' : 'roster'} />;
   }
+
+  const session = getSession('volunteer');
   if (!session) return <EnterScreen />;
-  if (session.role === 'ADMIN' && (hash === '#/' || hash === '')) {
-    location.hash = '#/commander';
-    return null;
-  }
   const tab = hash.startsWith('#/board') ? 'board' : hash.startsWith('#/profile') ? 'profile' : 'mine';
   return <VolunteerApp tab={tab} />;
 }

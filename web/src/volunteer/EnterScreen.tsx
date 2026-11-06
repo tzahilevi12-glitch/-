@@ -48,7 +48,7 @@ export function EnterScreen() {
         method: 'POST',
         body: { fullName: fullName.trim(), hasDrivingChip: chip },
       });
-      setSession({ token: res.token, role: res.user.role, fullName: res.user.fullName });
+      setSession({ token: res.token, role: res.user.role, fullName: res.user.fullName }, 'volunteer');
       location.hash = '#/board';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'הכניסה נכשלה.');

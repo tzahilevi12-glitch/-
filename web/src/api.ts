@@ -1,6 +1,21 @@
 import type { Role } from './types.ts';
 
-const KEY = 'pv.session';
+/**
+ * The volunteer site and the commander dashboard keep SEPARATE sign-ins, so being
+ * signed in as commander never changes what the base URL shows. Which one a request
+ * uses depends on the page: only "#/commander" and "#/commander/…" are the commander area.
+ */
+export type Area = 'volunteer' | 'commander';
+
+const KEYS: Record<Area, string> = { volunteer: 'pv.session.volunteer', commander: 'pv.session.commander' };
+
+export function isCommanderHash(hash: string): boolean {
+  return hash === '#/commander' || hash.startsWith('#/commander/');
+}
+
+export function currentArea(): Area {
+  return isCommanderHash(location.hash) ? 'commander' : 'volunteer';
+}
 
 export interface Session {
   token: string;
@@ -8,18 +23,38 @@ export interface Session {
   fullName: string;
 }
 
-export function getSession(): Session | null {
+function read(key: string): Session | null {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? 'null');
+    return JSON.parse(localStorage.getItem(key) ?? 'null');
   } catch {
     return null;
   }
 }
 
-export function setSession(s: Session | null) {
+// One-time move from the old shared key ("pv.session") to the separate keys.
+try {
+  const old = read('pv.session');
+  if (old) {
+    const area: Area = old.role === 'ADMIN' ? 'commander' : 'volunteer';
+    if (!localStorage.getItem(KEYS[area])) localStorage.setItem(KEYS[area], JSON.stringify(old));
+    localStorage.removeItem('pv.session');
+  }
+} catch {
+  /* storage unavailable */
+}
+
+export function getSession(area: Area = currentArea()): Session | null {
+  const s = read(KEYS[area]);
+  // A commander account is never used as a volunteer sign-in, and vice versa.
+  if (s && area === 'volunteer' && s.role === 'ADMIN') return null;
+  if (s && area === 'commander' && s.role !== 'ADMIN') return null;
+  return s;
+}
+
+export function setSession(s: Session | null, area: Area = currentArea()) {
   try {
-    if (s) localStorage.setItem(KEY, JSON.stringify(s));
-    else localStorage.removeItem(KEY);
+    if (s) localStorage.setItem(KEYS[area], JSON.stringify(s));
+    else localStorage.removeItem(KEYS[area]);
   } catch {
     /* storage unavailable (private mode): session lasts for this tab only */
   }
@@ -36,8 +71,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
-  const s = getSession();
+export async function api<T>(path: string, opts: { method?: string; body?: unknown; area?: Area } = {}): Promise<T> {
+  const area = opts.area ?? currentArea();
+  const s = getSession(area);
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
@@ -54,7 +90,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && s) setSession(null);
+    if (res.status === 401 && s) setSession(null, area);
     throw new ApiError(res.status, data?.error?.code ?? 'ERROR', data?.error?.message ?? 'משהו השתבש. כדאי לנסות שוב.');
   }
   return data as T;
