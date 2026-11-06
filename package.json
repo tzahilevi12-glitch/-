@@ -1,0 +1,38 @@
+{
+  "name": "police-volunteer-shifts",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "build": "prisma generate && node web/build.mjs",
+    "start": "prisma db push --skip-generate && node --experimental-strip-types src/server.ts",
+    "dev": "node --experimental-strip-types --watch src/server.ts",
+    "dev:web": "node web/build.mjs --watch",
+    "build:web": "node web/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\"",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "node --experimental-strip-types prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "node --experimental-strip-types prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "esbuild": "^0.25.0",
+    "express": "^5.1.0",
+    "prisma": "^6.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.0"
+  }
+}

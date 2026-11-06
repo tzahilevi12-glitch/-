@@ -1,0 +1,70 @@
+# Station shifts: police volunteer shift management
+
+A website (no install; opens in any browser, phone or desktop), fully in Hebrew, right to left.
+Volunteers enter their name and driving-chip status, see the published shifts, and sign up for whole or partial shifts. The shift scheduler (מזין המשמרות) plans each week as drafts, publishes it (volunteers get a popup), watches driver coverage on a week roster, and is alerted whenever a volunteer cancels.
+
+Stack: Node 22, TypeScript (run directly via `--experimental-strip-types`), Express 5, Prisma + PostgreSQL, React 19 bundled with esbuild.
+
+## Put it online
+
+See **DEPLOY.md**: a step-by-step guide for GitHub + Render with no terminal. `render.yaml` sets everything up.
+
+## Run it on your own computer (developers)
+
+```bash
+cp .env.example .env          # set DATABASE_URL, COMMANDER_PIN, ALERT_PHONE_NUMBERS
+npm install
+npm run build                 # prisma generate + build the web app
+npm start                     # creates/updates tables (prisma db push), serves on http://localhost:3000
+npm run db:seed               # optional demo data: 4 volunteers, this week published, next week drafts
+```
+
+Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebuilds the UI) in two terminals.
+`npm test` runs the business-rule tests (no database needed).
+
+- Volunteer app: `http://localhost:3000/`
+- Commander: `http://localhost:3000/#/commander` (any name + `COMMANDER_PIN`)
+
+## Screens
+
+**Volunteer (phone-first)**
+- **Enter:** full name and "I have / do not have a driving chip". That's the whole sign-up.
+- **My shifts:** upcoming shifts, each drawn as a duty bar showing your hours. Waitlisted shifts are marked. You can cancel or leave the waitlist.
+- **Shift board:** published open shifts grouped by day, each with a Driver needed, Drivers only or Open for all badge and the seats left. Days where you already have a shift are blocked.
+- **Sign-up sheet:** whole shift or part of it, chosen in 30-minute steps, with the duty bar previewing your hours.
+- **Profile:** change your name or driving-chip status.
+- **New shifts popup:** appears the first time you open the app after the commander publishes.
+
+**Commander (desktop, scrolls on a phone)**
+- **Roster:** a week grid of days by shift. Each cell has a green or red driver lamp, seats taken, names with a driver mark, partial hours, and the waitlist count. Drafts are hatched; past days are dimmed.
+- **Shift panel:** a duty bar of who covers which hours, Remove and Approve buttons, editing hours, capacity and drivers needed, Mark completed, and Delete.
+- **Add shifts:** fill the week (days × shift types) or add one shift. New shifts are always drafts.
+- **Publish week:** publishes the week's drafts and posts the volunteer popup. Publishing again later posts a "More shifts added" notice.
+- **Volunteers:** search, correct a driving chip, pause or restore a volunteer.
+
+## Rules
+
+| Rule | Behaviour |
+|---|---|
+| Sign-up | Open: name plus driving-chip status, no approval. The status is read from the profile on every booking. |
+| Visibility | Volunteers see only **published** shifts that haven't ended. The commander publishes a week at a time (weeks start Sunday). |
+| Capacity | `maxVolunteers` is the total per shift, whatever the hours. With max 2, sign-ups for 16–20 and 18–22 fill it. |
+| Partial hours | Any range inside the shift, including after midnight on a night shift. Hours are shown on the roster but don't affect capacity. |
+| Driver coverage | Green as soon as `requiredDrivers` approved volunteers have a chip, even if they're only on for part of the shift. |
+| Driver priority | When the remaining seats are all needed for drivers, a non-driver goes on the waitlist. They're promoted automatically, or the commander approves them. |
+| One per day | One shift per volunteer per calendar day (the shift's start date). Night shift + next-day morning is allowed (06:00–07:00 is the briefing). |
+| Cancellation alert | Cancelling is a single "are you sure?" popup. It always creates an alert for the scheduler, in the same transaction, so it can't happen silently. Right after it's saved, an SMS with the volunteer's name, shift date and hours goes to every number in `ALERT_PHONE_NUMBERS` (provider set by `SMS_PROVIDER`: console, twilio or webhook; see `src/services/smsNotifier.ts`). The scheduler also gets an in-site popup (checked on load and every 30 s) showing whether the SMS went out. Cancellations less than 24 h before the shift are flagged urgent. |
+| Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |
+
+## API
+
+Public: `POST /api/public/enter {fullName, hasDrivingChip}`, `POST /api/public/commander {fullName, pin}` → `{token}` (send it as `Authorization: Bearer`).
+
+Volunteer: `GET/PATCH /api/me`, `POST /api/me/logout`, `GET /api/me/shifts`, `GET /api/me/notifications`, `POST /api/me/notifications/seen`, `GET /api/shifts`, `POST /api/shifts/:id/registrations {startTime?, endTime?}`, `DELETE /api/shifts/:id/registrations/me` (always alerts the scheduler, in the site and by SMS).
+
+Commander (`/api/admin`): `GET /alerts`, `POST /alerts/ack {ids}`, `GET /weeks/:date`, `POST /weeks/:date/publish`, `POST /shifts`, `POST /shifts/recurring`, `PATCH|DELETE /shifts/:id`, `PATCH|DELETE /shift-series/:id`, `PATCH /registrations/:id {status}`, `GET /users`, `PATCH /users/:id`.
+
+## Known limits (until SMS sign-in)
+
+- A volunteer is identified by the device they signed up on. Signing up again on a new phone creates a second profile.
+- Commander sign-in is a shared station PIN.

@@ -1,0 +1,42 @@
+# One-click deployment on Render (https://render.com).
+# In Render: New → Blueprint → choose this GitHub repository. See DEPLOY.md.
+#
+# Render runs everything automatically:
+#   build:  npm install, prisma generate, build the website
+#   start:  create/update the database tables (prisma db push), then start the server
+
+databases:
+  - name: volunteers-db
+    plan: free # free database is deleted after 30 days (+14 days grace). Upgrade it before real use.
+    databaseName: volunteers
+    user: volunteers
+    region: frankfurt
+
+services:
+  - type: web
+    name: police-volunteers
+    runtime: node
+    plan: free # free plan sleeps after 15 min idle (~1 min to wake). "Starter" stays awake.
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: volunteers-db
+          property: connectionString
+      - key: STATION_TZ
+        value: Asia/Jerusalem
+      - key: WEEK_START_DAY
+        value: "0"
+      # Render asks for these two when you create the Blueprint:
+      - key: COMMANDER_PIN # the code the shift scheduler types to sign in
+        sync: false
+      - key: ALERT_PHONE_NUMBERS # 3 numbers separated by commas, e.g. 050-1234567,052-7654321,054-1112233
+        sync: false
+      # "console" = SMS is only written to the Logs tab. Change to "twilio" or "webhook" later (DEPLOY.md, part 3).
+      - key: SMS_PROVIDER
+        value: console

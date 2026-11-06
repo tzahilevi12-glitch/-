@@ -1,0 +1,162 @@
+// Police Volunteer Shift Management — database schema
+// Target: PostgreSQL (needed for Serializable transactions used by the registration service)
+//
+// Times of day are stored as Postgres TIME (station local wall-clock time).
+// A shift whose endTime <= startTime ends on the following day (NIGHT 21:30 → 07:00).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VOLUNTEER
+  ADMIN
+}
+
+enum ShiftType {
+  MORNING // default 06:00 – 15:00
+  EVENING // default 14:30 – 22:00
+  NIGHT   // default 21:30 – 07:00 (+1 day); 06:00–07:00 overlap with MORNING is the briefing
+}
+
+enum ShiftStatus {
+  OPEN
+  FILLED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  APPROVED // holds one of the shift's seats
+  PENDING  // waitlisted: the remaining seat is reserved for a driver
+  CANCELLED
+}
+
+/// Open registration: a volunteer enters their name and driving-chip status and is in.
+model User {
+  id                     String    @id @default(uuid()) @db.Uuid
+  fullName               String
+  phoneNumber            String?   // collected later with SMS sign-in
+  role                   Role      @default(VOLUNTEER)
+  hasDrivingChip         Boolean   @default(false) // self-declared; applies to every shift they book
+  isActive               Boolean   @default(true)  // commander can pause a volunteer
+  notificationsSeenAt    DateTime? // last time the user dismissed the "new shifts" popup
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  sessions      Session[]
+  registrations ShiftRegistration[]
+  announcements Announcement[]
+  alertsAbout   StaffAlert[] @relation("AlertVolunteer")
+  alertsHandled StaffAlert[] @relation("AlertAcknowledgedBy")
+
+  @@index([role, isActive])
+}
+
+/// Device session (bearer token, stored hashed). Replaced/extended by SMS OTP later.
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Shift {
+  id              String      @id @default(uuid()) @db.Uuid
+  date            DateTime    @db.Date // the date the shift STARTS
+  shiftType       ShiftType
+  startTime       DateTime    @db.Time(0)
+  endTime         DateTime    @db.Time(0)
+  requiredDrivers Int         @default(1) // approved drivers needed (partial hours count)
+  maxVolunteers   Int         @default(3) // total seats on the shift, regardless of hours
+  status          ShiftStatus @default(OPEN)
+  publishedAt     DateTime?   // null = draft, invisible to volunteers
+  seriesId        String?     @db.Uuid
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  registrations ShiftRegistration[]
+
+  @@unique([date, shiftType])
+  @@index([publishedAt, date])
+  @@index([seriesId, date])
+}
+
+model ShiftRegistration {
+  id        String             @id @default(uuid()) @db.Uuid
+  shiftId   String             @db.Uuid
+  userId    String             @db.Uuid
+  status    RegistrationStatus @default(APPROVED)
+  // Partial hours. Both null = the whole shift (and follows the shift if its hours change).
+  startTime DateTime?          @db.Time(0)
+  endTime   DateTime?          @db.Time(0)
+  createdAt DateTime           @default(now()) // reset on re-registration; waitlist order
+  updatedAt DateTime           @updatedAt
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts StaffAlert[]
+
+  @@unique([shiftId, userId])
+  @@index([userId, status])
+  @@index([shiftId, status])
+}
+
+enum AnnouncementKind {
+  WEEK_PUBLISHED // first publication of a week
+  WEEK_UPDATED   // more shifts published for an already-published week
+}
+
+/// Shown to volunteers as a popup the next time they open the app.
+model Announcement {
+  id            String           @id @default(uuid()) @db.Uuid
+  kind          AnnouncementKind
+  weekStart     DateTime         @db.Date
+  message       String
+  shiftCount    Int
+  createdById   String?          @db.Uuid
+  createdAt     DateTime         @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+enum StaffAlertKind {
+  VOLUNTEER_CANCELLED // a volunteer cancelled a seat on a shift
+  WAITLIST_LEFT       // a volunteer left a shift's waitlist
+}
+
+/// Alert for the shift scheduler (commander). Created in the same transaction as the
+/// cancellation, so a volunteer cannot cancel without the scheduler being notified.
+/// Shown as a popup to every commander until one of them acknowledges it, and sent
+/// by SMS to the numbers in ALERT_PHONE_NUMBERS.
+model StaffAlert {
+  id               String         @id @default(uuid()) @db.Uuid
+  kind             StaffAlertKind
+  registrationId   String?        @db.Uuid
+  volunteerId      String         @db.Uuid
+  message          String         // Hebrew, ready to display
+  urgent           Boolean        @default(false) // shift starts within 24 hours
+  smsSent          Int            @default(0)     // SMS messages delivered to the provider
+  smsError         String?        // why SMS failed (missing config, provider error)
+  createdAt        DateTime       @default(now())
+  acknowledgedAt   DateTime?
+  acknowledgedById String?        @db.Uuid
+
+  registration   ShiftRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  volunteer      User               @relation("AlertVolunteer", fields: [volunteerId], references: [id], onDelete: Cascade)
+  acknowledgedBy User?              @relation("AlertAcknowledgedBy", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+
+  @@index([acknowledgedAt, createdAt])
+}
