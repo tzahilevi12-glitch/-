@@ -1,16 +1,14 @@
 import { ApiError } from './errors.ts';
 import { isIsoDate } from './dates.ts';
 import { parseHHMM } from '../domain/registrationRules.ts';
-import { normalizePhone } from './phone.ts';
 
-export { normalizePhone };
 
 type Body = Record<string, unknown>;
 
 const LABEL: Record<string, string> = {
   fullName: 'שם מלא', pin: 'קוד', startTime: 'שעת התחלה', endTime: 'שעת סיום', date: 'תאריך', from: 'מתאריך', to: 'עד תאריך',
   shiftType: 'סוג משמרת', requiredDrivers: 'נהגים דרושים', maxVolunteers: 'מספר מתנדבים', notes: 'הערה',
-  status: 'סטטוס', hasDrivingChip: "צ'יפ נהיגה", isActive: 'סטטוס פעיל', phoneNumber: 'מספר טלפון',
+  status: 'סטטוס', hasDrivingChip: "צ'יפ נהיגה", isActive: 'סטטוס פעיל',
 };
 const label = (key: string) => LABEL[key] ?? key;
 
@@ -71,9 +69,4 @@ export function reqString(b: Body, key: string, maxLen = 200): string {
   const v = optString(b, key, maxLen);
   if (!v) fail(`חסר שדה: ${label(key)}.`);
   return v;
-}
-
-export function reqPhone(b: Body, key: string): string {
-  const v = reqString(b, key, 30);
-  return normalizePhone(v) ?? fail(`${label(key)}: מספר הטלפון לא תקין.`);
 }

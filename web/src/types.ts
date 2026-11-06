@@ -86,8 +86,6 @@ export interface StaffAlert {
   kind: 'VOLUNTEER_CANCELLED' | 'WAITLIST_LEFT';
   message: string;
   urgent: boolean;
-  smsSent: number;
-  smsError: string | null;
   createdAt: string;
 }
 

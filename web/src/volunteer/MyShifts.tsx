@@ -53,7 +53,7 @@ function CancelDialog({ s, onClose, onCancelled }: { s: MyShift; onClose: () => 
         <p className="sheet-date">
           משמרת {SHIFT_LABEL[s.shiftType]}, {dayLabel(s.date)}, {range(s.startTime, s.endTime)}
         </p>
-        <p className="notice notice-warn">הביטול מחייב התראה: מזין המשמרות יקבל הודעה ו-SMS עם השם שלך והמשמרת.</p>
+        <p className="notice notice-warn">הביטול מחייב התראה: מזין המשמרות יקבל הודעה עם השם שלך והמשמרת.</p>
         {lastMinute && <p className="notice notice-urgent">המשמרת מתחילה בעוד פחות מ-24 שעות.</p>}
         {error && (
           <p className="form-error" role="alert">

@@ -5,7 +5,7 @@ import { ApiError } from '../lib/errors.ts';
 /**
  * Lightweight device sessions for open registration. The token is returned once,
  * kept by the browser, and stored here only as a SHA-256 hash.
- * SMS OTP can later be added in front of createSession without changing the rest.
+ * A stronger sign-in can later be added in front of createSession without changing the rest.
  */
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -36,7 +36,7 @@ function pinMatches(pin: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-/** Commander signs in with their name and the station PIN (placeholder until SMS OTP). */
+/** Commander signs in with their name and the station PIN (simple station code). */
 export async function enterAsCommander(input: { fullName: string; pin: string }) {
   if (!pinMatches(input.pin)) throw new ApiError(401, 'WRONG_PIN', 'הקוד שגוי.');
   const existing = await prisma.user.findFirst({

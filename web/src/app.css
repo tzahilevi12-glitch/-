@@ -276,8 +276,6 @@ button { font: inherit; color: inherit; }
 .alert-item { padding: 12px 14px; border-radius: var(--radius-m); background: var(--paper); border-inline-start: 4px solid var(--ink-2); }
 .alert-item.is-urgent { background: var(--red-wash); border-inline-start-color: var(--red); }
 .alert-message { font-weight: 600; }
-.alert-sms { margin-top: 4px; font-size: 0.85rem; color: var(--green); }
-.alert-sms.is-failed { color: var(--red); font-weight: 500; }
 .urgent-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--red); padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
 
 .day { margin-bottom: 22px; }

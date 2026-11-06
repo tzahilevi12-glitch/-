@@ -1,7 +1,7 @@
 # Station shifts: police volunteer shift management
 
 A website (no install; opens in any browser, phone or desktop), fully in Hebrew, right to left.
-Volunteers enter their name and driving-chip status, see the published shifts, and sign up for whole or partial shifts. The shift scheduler (מזין המשמרות) plans each week as drafts, publishes it (volunteers get a popup), watches driver coverage on a week roster, and is alerted whenever a volunteer cancels.
+Volunteers enter their name and driving-chip status, see the published shifts, and sign up for whole or partial shifts. The shift scheduler (מזין המשמרות) plans each week as drafts, publishes it (volunteers get a popup), watches driver coverage on a week roster, and sees a popup whenever a volunteer cancels.
 
 Stack: Node 22, TypeScript (run directly via `--experimental-strip-types`), Express 5, Prisma + PostgreSQL, React 19 bundled with esbuild.
 
@@ -12,7 +12,7 @@ See **DEPLOY.md**: a step-by-step guide for GitHub + Render with no terminal. `r
 ## Run it on your own computer (developers)
 
 ```bash
-cp .env.example .env          # set DATABASE_URL, COMMANDER_PIN, ALERT_PHONE_NUMBERS
+cp .env.example .env          # set DATABASE_URL and COMMANDER_PIN
 npm install
 npm run build                 # prisma generate + build the web app
 npm start                     # creates/updates tables (prisma db push), serves on http://localhost:3000
@@ -53,18 +53,18 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 | Driver coverage | Green as soon as `requiredDrivers` approved volunteers have a chip, even if they're only on for part of the shift. |
 | Driver priority | When the remaining seats are all needed for drivers, a non-driver goes on the waitlist. They're promoted automatically, or the commander approves them. |
 | One per day | One shift per volunteer per calendar day (the shift's start date). Night shift + next-day morning is allowed (06:00–07:00 is the briefing). |
-| Cancellation alert | Cancelling is a single "are you sure?" popup. It always creates an alert for the scheduler, in the same transaction, so it can't happen silently. Right after it's saved, an SMS with the volunteer's name, shift date and hours goes to every number in `ALERT_PHONE_NUMBERS` (provider set by `SMS_PROVIDER`: console, twilio or webhook; see `src/services/smsNotifier.ts`). The scheduler also gets an in-site popup (checked on load and every 30 s) showing whether the SMS went out. Cancellations less than 24 h before the shift are flagged urgent. |
+| Cancellation alert | Cancelling is a single "are you sure?" popup. It always creates an alert for the scheduler, in the same transaction, so it can't happen silently. The scheduler sees it as a popup in the dashboard (checked on load and every 30 s) until they press "קראתי". Cancellations less than 24 h before the shift are flagged urgent. |
 | Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |
 
 ## API
 
 Public: `POST /api/public/enter {fullName, hasDrivingChip}`, `POST /api/public/commander {fullName, pin}` → `{token}` (send it as `Authorization: Bearer`).
 
-Volunteer: `GET/PATCH /api/me`, `POST /api/me/logout`, `GET /api/me/shifts`, `GET /api/me/notifications`, `POST /api/me/notifications/seen`, `GET /api/shifts`, `POST /api/shifts/:id/registrations {startTime?, endTime?}`, `DELETE /api/shifts/:id/registrations/me` (always alerts the scheduler, in the site and by SMS).
+Volunteer: `GET/PATCH /api/me`, `POST /api/me/logout`, `GET /api/me/shifts`, `GET /api/me/notifications`, `POST /api/me/notifications/seen`, `GET /api/shifts`, `POST /api/shifts/:id/registrations {startTime?, endTime?}`, `DELETE /api/shifts/:id/registrations/me` (always creates a dashboard alert for the scheduler).
 
 Commander (`/api/admin`): `GET /alerts`, `POST /alerts/ack {ids}`, `GET /weeks/:date`, `POST /weeks/:date/publish`, `POST /shifts`, `POST /shifts/recurring`, `PATCH|DELETE /shifts/:id`, `PATCH|DELETE /shift-series/:id`, `PATCH /registrations/:id {status}`, `GET /users`, `PATCH /users/:id`.
 
-## Known limits (until SMS sign-in)
+## Known limits
 
 - A volunteer is identified by the device they signed up on. Signing up again on a new phone creates a second profile.
 - Commander sign-in is a shared station PIN.

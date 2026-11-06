@@ -1,5 +1,4 @@
 import { prisma, withSerializableTx, type Tx } from '../lib/prisma.ts';
-import { notifyCancellationBySms, type CancellationDetails } from './smsNotifier.ts';
 import { ApiError, rejectionToError } from '../lib/errors.ts';
 import { hhmmToTime, nowInStation, toIsoDate } from '../lib/dates.ts';
 import {
@@ -17,7 +16,8 @@ import { loadShift, overridesFor, registrationInterval, windowOf } from './shift
 
 const toTime = (hhmm: string | null) => (hhmm ? hhmmToTime(hhmm) : null);
 
-export const SHIFT_HE: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'ערב', NIGHT: 'לילה' };
+// Hebrew display names. The internal code stays EVENING (renaming it in the database would risk existing data).
+export const SHIFT_HE: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'צהריים', NIGHT: 'לילה' };
 
 /** "יום שישי, 6.11" */
 export function hebrewDay(isoDate: string): string {
@@ -128,26 +128,12 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
 /**
  * Cancel a registration.
  * - Volunteer: allowed until their hours end. The cancellation ALWAYS creates an alert for
- *   the shift scheduler in the same transaction (in-site popup), and then texts the numbers
- *   in ALERT_PHONE_NUMBERS. The SMS is sent after the transaction commits, so a retried
- *   transaction never sends duplicates, and an SMS failure never undoes the cancellation;
- *   the outcome is stored on the alert instead.
+ *   the shift scheduler in the same transaction, so it cannot happen silently. The scheduler
+ *   sees it as a popup in the dashboard until they acknowledge it.
  * - Commander: any time, no alert (they made the change themselves).
  * Frees the seat and promotes the waitlist.
  */
 export async function cancelRegistration(params: { shiftId: string; userId: string; actorIsAdmin: boolean }) {
-  const result = await cancelRegistrationTx(params);
-  let sms: Awaited<ReturnType<typeof notifyCancellationBySms>> | null = null;
-  if (result.alert) {
-    sms = await notifyCancellationBySms(result.alert.details);
-    await prisma.staffAlert
-      .update({ where: { id: result.alert.id }, data: { smsSent: sms.sent, smsError: sms.error } })
-      .catch((err) => console.error('[SMS] could not record result', err));
-  }
-  return { registration: result.registration, staffing: result.staffing, alertSent: result.alert !== null, smsSent: sms?.sent ?? 0 };
-}
-
-async function cancelRegistrationTx(params: { shiftId: string; userId: string; actorIsAdmin: boolean }) {
   const { shiftId, userId, actorIsAdmin } = params;
   return withSerializableTx(async (tx) => {
     const reg = await tx.shiftRegistration.findUnique({
@@ -170,37 +156,25 @@ async function cancelRegistrationTx(params: { shiftId: string; userId: string; a
 
     const registration = await tx.shiftRegistration.update({ where: { id: reg.id }, data: { status: 'CANCELLED' } });
 
-    let alert: { id: string; details: CancellationDetails } | null = null;
+    let alertSent = false;
     if (!actorIsAdmin) {
       const wasSeat = reg.status === 'APPROVED';
       const range = ltrRange(formatHHMM(interval.start), formatHHMM(interval.end));
       const what = `משמרת ${SHIFT_HE[reg.shift.shiftType as ShiftType]}, ${hebrewDay(date)} (${range})`;
-      const urgent = wasSeat && absoluteMinute(date, interval.start) - nowAbs < 24 * 60;
-      const created = await tx.staffAlert.create({
+      await tx.staffAlert.create({
         data: {
           kind: wasSeat ? 'VOLUNTEER_CANCELLED' : 'WAITLIST_LEFT',
           registrationId: reg.id,
           volunteerId: userId,
           message: wasSeat ? `${reg.user.fullName} ביטל/ה את ההרשמה ל${what}.` : `${reg.user.fullName} יצא/ה מרשימת ההמתנה ל${what}.`,
-          urgent,
+          urgent: wasSeat && absoluteMinute(date, interval.start) - nowAbs < 24 * 60,
         },
       });
-      alert = {
-        id: created.id,
-        details: {
-          volunteerName: reg.user.fullName,
-          shiftType: reg.shift.shiftType as ShiftType,
-          date,
-          startTime: formatHHMM(interval.start),
-          endTime: formatHHMM(interval.end),
-          urgent,
-          waitlistOnly: !wasSeat,
-        },
-      };
+      alertSent = true;
     }
 
     const staffing = await rebalanceShift(tx, shiftId);
-    return { registration, staffing, alert };
+    return { registration, staffing, alertSent };
   });
 }
 
@@ -230,7 +204,7 @@ export async function openAlerts() {
     where: { acknowledgedAt: null },
     orderBy: { createdAt: 'desc' },
     take: 100,
-    select: { id: true, kind: true, message: true, urgent: true, smsSent: true, smsError: true, createdAt: true },
+    select: { id: true, kind: true, message: true, urgent: true, createdAt: true },
   });
 }
 

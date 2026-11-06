@@ -24,7 +24,7 @@ export interface ShiftFields {
 }
 
 const DEFAULTS = { requiredDrivers: 1, maxVolunteers: 3 };
-const SHIFT_HE: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'ערב', NIGHT: 'לילה' };
+const SHIFT_HE: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'צהריים', NIGHT: 'לילה' };
 const MAX_RECURRENCE_DAYS = 366;
 
 function resolveNewShift(shiftType: ShiftType, f: ShiftFields) {

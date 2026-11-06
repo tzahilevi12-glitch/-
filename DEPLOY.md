@@ -32,9 +32,8 @@ Allow about 30 minutes the first time.
 2. In the Render dashboard, click **New**, then **Blueprint**.
 3. Connect your GitHub account if asked. Allow Render to see the `police-volunteers` repository, then select it.
 4. Give the Blueprint any name. Render shows what it will create: a database called `volunteers-db` and a web service called `police-volunteers`.
-5. Render asks for two values:
+5. Render asks for one value:
    - **COMMANDER_PIN**: the code the shift scheduler types to sign in. Choose at least 6 digits and keep it private.
-   - **ALERT_PHONE_NUMBERS**: the 3 phone numbers that get a text when someone cancels, separated by commas. For example: `050-1234567,052-7654321,054-1112233`
 6. Click **Deploy Blueprint** (the button may say **Apply**). Render now:
    - installs everything (`npm install`),
    - builds the website,
@@ -49,33 +48,7 @@ Allow about 30 minutes the first time.
 - **Build:** `npm install && npm run build`
 - **Start:** `npm start`, which creates or updates the database tables and then starts the server
 
-## Part 3: Turn on real text messages (Twilio)
-
-Until you do this, cancellation texts are only written to the **Logs** tab on Render. You'll see lines starting with `[SMS → +972…]`. That's a safe way to check everything works first.
-
-1. Go to **https://www.twilio.com** and create an account.
-2. Open the Twilio Console. Copy the **Account SID** and the **Auth Token**.
-3. Get a sending number: **Phone Numbers → Buy a number**.
-   - Trial accounts can only send to numbers you have verified. Add the 3 numbers under **Verified Caller IDs** first, or upgrade the account.
-4. In Render, open the `police-volunteers` service, then **Environment**. Add or edit these:
-
-   | Key | Value |
-   |---|---|
-   | `SMS_PROVIDER` | `twilio` |
-   | `TWILIO_ACCOUNT_SID` | the Account SID |
-   | `TWILIO_AUTH_TOKEN` | the Auth Token |
-   | `TWILIO_FROM` | your Twilio number, e.g. `+15551234567` |
-
-5. Click **Save changes**. Render restarts the site by itself.
-6. Test it:
-   - Open the site as a volunteer and sign up for a shift.
-   - Go to **המשמרות שלי** and cancel it.
-   - All 3 phones should get a text.
-   - In the scheduler's popup you'll see "נשלח SMS ל-3 מספרים". If something is wrong, the popup shows the reason in red instead.
-
-**Using an Israeli SMS company instead of Twilio:** set `SMS_PROVIDER` to `webhook` and `SMS_WEBHOOK_URL` to an address that accepts `{"to": "+9725…", "message": "…"}`. Each SMS company has its own API format, so this usually needs a small adapter, or an automation tool like Make or Zapier in between.
-
-## Part 4: Before real use (costs and limits)
+## Part 3: Before real use (costs and limits)
 
 The free plan is fine for trying things out, but it has two limits:
 
@@ -99,4 +72,8 @@ Render notices and redeploys automatically within a few minutes. Your data stays
 
 - **Deploy failed:** open **Logs** on the `police-volunteers` service. The last red lines say why. The most common cause is files uploaded inside an extra folder (see Part 1, step 7).
 - **"כניסת מזין משמרות לא הוגדרה בשרת":** COMMANDER_PIN is missing. Add it under **Environment**.
-- **The site shows an error after 30 days:** the free database expired (see Part 4).
+- **The site shows an error after 30 days:** the free database expired (see Part 3).
+
+## How cancellation alerts work
+
+When a volunteer cancels, the shift scheduler sees a popup the next time they open the dashboard (`/#/commander`). While the dashboard is open, it checks for new cancellations every 30 seconds. The popup stays until someone presses **קראתי**. Cancellations less than 24 hours before the shift are marked in red. There are no text messages and nothing to set up.

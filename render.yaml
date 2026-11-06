@@ -32,11 +32,6 @@ services:
         value: Asia/Jerusalem
       - key: WEEK_START_DAY
         value: "0"
-      # Render asks for these two when you create the Blueprint:
+      # Render asks for this one when you create the Blueprint:
       - key: COMMANDER_PIN # the code the shift scheduler types to sign in
         sync: false
-      - key: ALERT_PHONE_NUMBERS # 3 numbers separated by commas, e.g. 050-1234567,052-7654321,054-1112233
-        sync: false
-      # "console" = SMS is only written to the Logs tab. Change to "twilio" or "webhook" later (DEPLOY.md, part 3).
-      - key: SMS_PROVIDER
-        value: console

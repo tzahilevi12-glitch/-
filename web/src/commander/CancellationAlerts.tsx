@@ -58,12 +58,7 @@ export function CancellationAlerts({ onNew }: { onNew: () => void }) {
             <li key={a.id} className={`alert-item${a.urgent ? ' is-urgent' : ''}`}>
               {a.urgent && <span className="urgent-tag">פחות מ-24 שעות לפני המשמרת</span>}
               <p className="alert-message">{a.message}</p>
-              {a.smsError ? (
-                <p className="alert-sms is-failed">ה-SMS לא נשלח: {a.smsError}</p>
-              ) : a.smsSent > 0 ? (
-                <p className="alert-sms">נשלח SMS ל-{a.smsSent} מספרים</p>
-              ) : null}
-              <p className="muted small">{whenLabel(a.createdAt)}</p>
+                            <p className="muted small">{whenLabel(a.createdAt)}</p>
             </li>
           ))}
         </ul>

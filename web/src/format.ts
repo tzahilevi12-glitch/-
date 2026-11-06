@@ -1,6 +1,7 @@
 import type { ShiftType } from './types.ts';
 
-export const SHIFT_LABEL: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'ערב', NIGHT: 'לילה' };
+// Hebrew display names. The internal code stays EVENING (renaming it in the database would risk existing data).
+export const SHIFT_LABEL: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'צהריים', NIGHT: 'לילה' };
 export const SHIFT_TYPES: ShiftType[] = ['MORNING', 'EVENING', 'NIGHT'];
 export const WEEKDAYS = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"];
 

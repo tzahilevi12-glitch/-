@@ -77,15 +77,15 @@ shiftsRouter.post('/:shiftId/registrations', async (req, res) => {
 
 /**
  * DELETE /api/shifts/:shiftId/registrations/me
- * Always notifies the shift scheduler: in-site popup (alertSent) and SMS (smsSent = how many numbers).
+ * Always notifies the shift scheduler with a popup in the dashboard (alertSent: true).
  */
 shiftsRouter.delete('/:shiftId/registrations/me', async (req, res) => {
-  const { registration, staffing, alertSent, smsSent } = await cancelRegistration({
+  const { registration, staffing, alertSent } = await cancelRegistration({
     shiftId: req.params.shiftId,
     userId: req.user!.id,
     actorIsAdmin: false,
   });
-  res.json({ registration: { id: registration.id, status: registration.status }, alertSent, smsSent, shift: staffingView(staffing) });
+  res.json({ registration: { id: registration.id, status: registration.status }, alertSent, shift: staffingView(staffing) });
 });
 
 export const meRouter = Router();

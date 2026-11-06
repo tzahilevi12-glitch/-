@@ -7,7 +7,7 @@ import { WheelIcon } from '../ui.tsx';
 function DayStrip() {
   const rows = [
     { label: 'בוקר', from: 6, to: 15 },
-    { label: 'ערב', from: 14.5, to: 22 },
+    { label: 'צהריים', from: 14.5, to: 22 },
     { label: 'לילה', from: 21.5, to: 31 },
   ];
   const pct = (h: number) => `${((h - 6) / 25) * 100}%`;

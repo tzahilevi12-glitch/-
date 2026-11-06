@@ -20,7 +20,7 @@ enum Role {
 
 enum ShiftType {
   MORNING // default 06:00 – 15:00
-  EVENING // default 14:30 – 22:00
+  EVENING // "צהריים" in the UI; default 14:30 – 22:00
   NIGHT   // default 21:30 – 07:00 (+1 day); 06:00–07:00 overlap with MORNING is the briefing
 }
 
@@ -40,7 +40,7 @@ enum RegistrationStatus {
 model User {
   id                     String    @id @default(uuid()) @db.Uuid
   fullName               String
-  phoneNumber            String?   // collected later with SMS sign-in
+  phoneNumber            String?   // optional, not collected yet
   role                   Role      @default(VOLUNTEER)
   hasDrivingChip         Boolean   @default(false) // self-declared; applies to every shift they book
   isActive               Boolean   @default(true)  // commander can pause a volunteer
@@ -57,7 +57,7 @@ model User {
   @@index([role, isActive])
 }
 
-/// Device session (bearer token, stored hashed). Replaced/extended by SMS OTP later.
+/// Device session (bearer token, stored hashed).
 model Session {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @db.Uuid
@@ -139,8 +139,7 @@ enum StaffAlertKind {
 
 /// Alert for the shift scheduler (commander). Created in the same transaction as the
 /// cancellation, so a volunteer cannot cancel without the scheduler being notified.
-/// Shown as a popup to every commander until one of them acknowledges it, and sent
-/// by SMS to the numbers in ALERT_PHONE_NUMBERS.
+/// Shown as a popup to every commander until one of them acknowledges it.
 model StaffAlert {
   id               String         @id @default(uuid()) @db.Uuid
   kind             StaffAlertKind
@@ -148,8 +147,6 @@ model StaffAlert {
   volunteerId      String         @db.Uuid
   message          String         // Hebrew, ready to display
   urgent           Boolean        @default(false) // shift starts within 24 hours
-  smsSent          Int            @default(0)     // SMS messages delivered to the provider
-  smsError         String?        // why SMS failed (missing config, provider error)
   createdAt        DateTime       @default(now())
   acknowledgedAt   DateTime?
   acknowledgedById String?        @db.Uuid
