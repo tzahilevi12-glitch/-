@@ -18,6 +18,14 @@ enum Role {
   ADMIN
 }
 
+/// Level B (שלב ב') / Level C (שלב ג') volunteers may open an additional patrol car:
+/// they can join any shift regardless of maxVolunteers, and don't use up regular seats.
+enum Certification {
+  NONE
+  LEVEL_B
+  LEVEL_C
+}
+
 enum ShiftType {
   MORNING // default 06:00 – 15:00
   EVENING // "צהריים" in the UI; default 14:30 – 22:00
@@ -43,6 +51,7 @@ model User {
   phoneNumber            String?   // optional, not collected yet
   role                   Role      @default(VOLUNTEER)
   hasDrivingChip         Boolean   @default(false) // self-declared; applies to every shift they book
+  certification          Certification @default(NONE) // self-declared at sign-in
   isActive               Boolean   @default(true)  // commander can pause a volunteer
   notificationsSeenAt    DateTime? // last time the user dismissed the "new shifts" popup
   createdAt              DateTime  @default(now())
@@ -77,7 +86,7 @@ model Shift {
   startTime       DateTime    @db.Time(0)
   endTime         DateTime    @db.Time(0)
   requiredDrivers Int         @default(1) // approved drivers needed (partial hours count)
-  maxVolunteers   Int         @default(3) // total seats on the shift, regardless of hours
+  maxVolunteers   Int         @default(3) // regular seats on the shift, regardless of hours (Level B/C are extra)
   status          ShiftStatus @default(OPEN)
   publishedAt     DateTime?   // null = draft, invisible to volunteers
   seriesId        String?     @db.Uuid

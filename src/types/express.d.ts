@@ -1,4 +1,4 @@
-import type { Role } from '@prisma/client';
+import type { Certification, Role } from '@prisma/client';
 
 declare global {
   namespace Express {
@@ -9,6 +9,7 @@ declare global {
         role: Role;
         isActive: boolean;
         hasDrivingChip: boolean;
+        certification: Certification;
       };
       sessionTokenHash?: string;
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.ts';
-import type { Volunteer } from '../types.ts';
+import type { Certification, Volunteer } from '../types.ts';
+import { CERTIFICATIONS, CERT_LABEL } from '../format.ts';
 import { LoadState, WheelIcon, toast, useLoad } from '../ui.tsx';
 
 export function Volunteers({ refreshKey }: { refreshKey: number }) {
@@ -11,7 +12,7 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
   );
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function update(v: Volunteer, patch: Partial<Pick<Volunteer, 'hasDrivingChip' | 'isActive'>>, done: string) {
+  async function update(v: Volunteer, patch: Partial<Pick<Volunteer, 'hasDrivingChip' | 'isActive' | 'certification'>>, done: string) {
     setBusyId(v.id);
     try {
       const r = await api<{ user: Volunteer; cancelledRegistrations: number }>(`/admin/users/${v.id}`, { method: 'PATCH', body: patch });
@@ -28,7 +29,7 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
     <section className="cmd-page">
       <div className="week-head">
         <h1>מתנדבים</h1>
-        <p className="week-status">מתנדבים נכנסים עם השם שלהם. כאן אפשר לתקן צ'יפ נהיגה או להשהות מתנדב.</p>
+        <p className="week-status">מתנדבים נכנסים עם השם שלהם. כאן אפשר לתקן צ'יפ נהיגה או הסמכה, או להשהות מתנדב.</p>
         <input className="input search" type="search" placeholder="חיפוש לפי שם" value={q} onChange={(e) => setQ(e.target.value)} aria-label="חיפוש מתנדבים" />
       </div>
 
@@ -44,6 +45,7 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
             <tr>
               <th>שם</th>
               <th>צ'יפ נהיגה</th>
+              <th>הסמכה</th>
               <th>משמרות קרובות</th>
               <th>סטטוס</th>
             </tr>
@@ -67,6 +69,24 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
                       "אין צ'יפ"
                     )}
                   </button>
+                </td>
+                <td>
+                  <select
+                    className="input input-sm"
+                    value={v.certification ?? 'NONE'}
+                    disabled={busyId === v.id}
+                    aria-label={`הסמכה של ${v.fullName}`}
+                    onChange={(e) => {
+                      const c = e.target.value as Certification;
+                      void update(v, { certification: c }, `ההסמכה עודכנה: ${CERT_LABEL[c]}.`);
+                    }}
+                  >
+                    {CERTIFICATIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {CERT_LABEL[c]}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td>{v.upcomingShifts}</td>
                 <td>

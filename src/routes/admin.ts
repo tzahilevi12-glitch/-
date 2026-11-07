@@ -56,7 +56,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
         registrations: {
           where: { status: { in: ['APPROVED', 'PENDING'] } },
           orderBy: { createdAt: 'asc' },
-          include: { user: { select: { id: true, fullName: true, hasDrivingChip: true } } },
+          include: { user: { select: { id: true, fullName: true, hasDrivingChip: true, certification: true } } },
         },
       },
     }),
@@ -79,6 +79,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
           userId: r.user.id,
           fullName: r.user.fullName,
           hasDrivingChip: r.user.hasDrivingChip,
+          certification: r.user.certification,
           startTime: f.start,
           endTime: f.end,
           isPartial: interval.start !== window.start || interval.end !== window.end,
@@ -188,12 +189,13 @@ adminRouter.get('/users', async (req, res) => {
   res.json({ users: await listVolunteers({ search: q }) });
 });
 
-/** PATCH /api/admin/users/:id  { hasDrivingChip?, isActive?, fullName? } */
+/** PATCH /api/admin/users/:id  { hasDrivingChip?, certification?, isActive?, fullName? } */
 adminRouter.patch('/users/:id', async (req, res) => {
   const b = asBody(req.body);
   res.json(
     await adminUpdateUser(req.user!.id, req.params.id, {
       hasDrivingChip: optBool(b, 'hasDrivingChip'),
+      certification: optEnum(b, 'certification', ['NONE', 'LEVEL_B', 'LEVEL_C'] as const),
       isActive: optBool(b, 'isActive'),
       fullName: optString(b, 'fullName', 80),
     }),

@@ -136,3 +136,48 @@ test('weeks start on Sunday; recurrence', () => {
   assert.equal(weekStartOf('2026-11-08'), '2026-11-08'); // Sunday
   assert.equal(expandRecurrence('2026-11-08', '2026-11-21', [0, 1, 2, 3, 4]).length, 10);
 });
+
+// ── Level B / Level C ──
+
+test('Level B/C join a FULL shift (bypass maxVolunteers)', () => {
+  const counts = { approvedTotal: 3, approvedDrivers: 1 };
+  assert.equal(code(decideRegistration(ctx({ counts }))), 'SHIFT_FULL');
+  for (const certification of ['LEVEL_B', 'LEVEL_C'] as const) {
+    assert.equal(code(decideRegistration(ctx({ counts, user: { isActive: true, hasDrivingChip: false, certification } }))), 'APPROVED');
+  }
+});
+
+test('Level B/C skip the driver reservation (never waitlisted)', () => {
+  const counts = { approvedTotal: 2, approvedDrivers: 0 };
+  assert.equal(code(decideRegistration(ctx({ counts, user: { isActive: true, hasDrivingChip: false, certification: 'LEVEL_B' } }))), 'APPROVED');
+});
+
+test('Level B/C still follow the other rules', () => {
+  const user = { isActive: true, hasDrivingChip: false, certification: 'LEVEL_C' as const };
+  assert.equal(code(decideRegistration(ctx({ user, otherShiftDates: ['2026-11-10'] }))), 'ONE_SHIFT_PER_DAY');
+  assert.equal(code(decideRegistration(ctx({ user, shift: { ...evening, published: false } }))), 'NOT_PUBLISHED');
+  assert.equal(code(decideRegistration(ctx({ user, shift: { ...evening, status: 'COMPLETED' } }))), 'SHIFT_NOT_OPEN');
+  assert.equal(code(decideRegistration(ctx({ user, existingStatusOnShift: 'APPROVED' }))), 'ALREADY_REGISTERED');
+  assert.equal(code(decideRegistration(ctx({ user: { ...user, isActive: false } }))), 'USER_INACTIVE');
+});
+
+test('NONE certification behaves like before', () => {
+  assert.equal(code(decideRegistration(ctx({ counts: { approvedTotal: 3, approvedDrivers: 1 }, user: { isActive: true, hasDrivingChip: true, certification: 'NONE' } }))), 'SHIFT_FULL');
+});
+
+test('waitlisted Level B/C volunteer is promoted even when the shift is full', () => {
+  const a = { name: 'a', hasDrivingChip: false, createdAt: new Date(1) };
+  const c = { name: 'c', hasDrivingChip: false, createdAt: new Date(5), certification: 'LEVEL_C' as const };
+  assert.equal(pickPromotion(evening, { approvedTotal: 3, approvedDrivers: 1 }, [a, c])?.name, 'c');
+});
+
+test('extra Level B/C volunteers do not block editing the shift', () => {
+  const regs = [
+    { status: 'APPROVED' as const, startTime: null, endTime: null },
+    { status: 'APPROVED' as const, startTime: null, endTime: null },
+    { status: 'APPROVED' as const, startTime: null, endTime: null },
+    { status: 'APPROVED' as const, startTime: null, endTime: null, certification: 'LEVEL_B' as const },
+  ];
+  assert.equal(checkShiftChange({ ...evening, maxVolunteers: 3 }, regs).ok, true);
+  assert.equal(checkShiftChange({ ...evening, maxVolunteers: 2 }, regs).ok, false);
+});

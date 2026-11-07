@@ -92,7 +92,7 @@ function ShiftCard({ s, isDriver, onCancel }: { s: MyShift; isDriver: boolean; o
         lanes={[{ key: 'me', startTime: s.startTime, endTime: s.endTime, driver: isDriver, pending: s.status === 'PENDING', highlight: true }]}
       />
       {s.isPartial && <p className="muted small">חלק ממשמרת {range(s.shiftStartTime, s.shiftEndTime)}</p>}
-      {s.status === 'PENDING' && <p className="warn-note">המקום האחרון שמור לנהג. אם יתפנה מקום, ההרשמה תאושר אוטומטית.</p>}
+      {s.status === 'PENDING' && <p className="info-note">ההרשמה ממתינה לשיבוץ. כשיתפנה מקום היא תאושר אוטומטית.</p>}
       <div className="my-card-foot">
         <button className="btn btn-ghost" onClick={onCancel}>
           {s.status === 'PENDING' ? 'יציאה מרשימת ההמתנה' : 'ביטול משמרת'}

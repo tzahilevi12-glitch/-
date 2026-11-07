@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ApiError } from '../lib/errors.ts';
-import { asBody, reqString } from '../lib/validate.ts';
+import { asBody, optEnum, reqString } from '../lib/validate.ts';
 import { enterAsCommander, enterAsVolunteer } from '../services/sessionService.ts';
 
 export const publicRouter = Router();
@@ -11,13 +11,14 @@ function fullNameFrom(b: Record<string, unknown>): string {
   return name;
 }
 
-/** POST /api/public/enter  { fullName, hasDrivingChip } → { token, user }. Open registration. */
+/** POST /api/public/enter  { fullName, hasDrivingChip, certification? (NONE | LEVEL_B | LEVEL_C) } → { token, user }. Open registration. */
 publicRouter.post('/enter', async (req, res) => {
   const b = asBody(req.body);
   if (typeof b.hasDrivingChip !== 'boolean') {
     throw new ApiError(400, 'VALIDATION', "יש לבחור אם יש לך צ'יפ נהיגה.");
   }
-  res.status(201).json(await enterAsVolunteer({ fullName: fullNameFrom(b), hasDrivingChip: b.hasDrivingChip }));
+  const certification = optEnum(b, 'certification', ['NONE', 'LEVEL_B', 'LEVEL_C'] as const) ?? 'NONE';
+  res.status(201).json(await enterAsVolunteer({ fullName: fullNameFrom(b), hasDrivingChip: b.hasDrivingChip, certification }));
 });
 
 /** POST /api/public/commander  { fullName, pin } → { token, user }. PIN from COMMANDER_PIN. */

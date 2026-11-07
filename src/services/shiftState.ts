@@ -10,6 +10,8 @@ import {
   isWholeShift,
   resolveHours,
   shiftWindow,
+  bypassesCapacity,
+  type Certification,
   type Interval,
   type SeatCounts,
   type Staffing,
@@ -40,9 +42,15 @@ export function overridesFor(window: Interval, interval: Interval) {
   return { startTime: f.start, endTime: f.end };
 }
 
-export function countSeats(regs: Array<{ status: string; user: { hasDrivingChip: boolean } }>): SeatCounts {
+/** Regular seats exclude Level B/C volunteers, who are extra (additional patrol car). */
+export function countSeats(regs: Array<{ status: string; user: { hasDrivingChip: boolean; certification?: Certification | string } }>): SeatCounts {
   const approved = regs.filter((r) => r.status === 'APPROVED');
-  return { approvedTotal: approved.length, approvedDrivers: approved.filter((r) => r.user.hasDrivingChip).length };
+  const extra = approved.filter((r) => bypassesCapacity(r.user.certification as Certification));
+  return {
+    approvedTotal: approved.length - extra.length,
+    approvedDrivers: approved.filter((r) => r.user.hasDrivingChip).length,
+    approvedExtra: extra.length,
+  };
 }
 
 export async function loadShift(tx: Tx, shiftId: string) {
@@ -51,7 +59,7 @@ export async function loadShift(tx: Tx, shiftId: string) {
     include: {
       registrations: {
         where: { status: { in: ['APPROVED', 'PENDING'] } },
-        include: { user: { select: { hasDrivingChip: true, isActive: true } } },
+        include: { user: { select: { hasDrivingChip: true, isActive: true, certification: true } } },
       },
     },
   });
@@ -65,6 +73,7 @@ export function staffingView(s: Staffing) {
     badge: s.badge,
     driverAlert: s.hasQualifiedDriver ? ('GREEN' as const) : ('RED' as const),
     seatsTaken: s.approvedTotal,
+    extraVolunteers: s.approvedExtra ?? 0,
     seatsLeft: s.seatsLeft,
     driversMissing: s.driversMissing,
     driverOnly: s.remainingSeatsReservedForDrivers,

@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
-import { asBody, optBool, optHHMM, optString } from '../lib/validate.ts';
-import { absoluteMinute, addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
+import { asBody, optBool, optEnum, optHHMM, optString } from '../lib/validate.ts';
+import { absoluteMinute, addDays, bypassesCapacity, computeStaffing, formatInterval, type Certification } from '../domain/registrationRules.ts';
 import { cancelRegistration, registerForShift } from '../services/registrationService.ts';
 import { endSession } from '../services/sessionService.ts';
 import { countSeats, registrationInterval, shiftHeader, staffingView, windowOf } from '../services/shiftState.ts';
@@ -17,20 +17,22 @@ const hours = (f: { start: string; end: string }) => ({ startTime: f.start, endT
  * GET /api/shifts — volunteer shift board.
  * Published OPEN shifts that haven't ended, with a badge (DRIVER_NEEDED / OPEN_FOR_ALL),
  * seats left, and whether the caller already has a shift that day.
+ * Level B/C volunteers also see FULL shifts, since they can join any shift.
  */
 shiftsRouter.get('/', async (req, res) => {
   const now = nowInStation();
   const nowAbs = absoluteMinute(now.date, now.minute);
   const userId = req.user!.id;
+  const certified = bypassesCapacity(req.user!.certification as Certification);
 
   const [shifts, mine] = await Promise.all([
     prisma.shift.findMany({
-      where: { publishedAt: { not: null }, status: 'OPEN', date: { gte: fromIsoDate(addDays(now.date, -1)) } },
+      where: { publishedAt: { not: null }, status: certified ? { in: ['OPEN', 'FILLED'] } : 'OPEN', date: { gte: fromIsoDate(addDays(now.date, -1)) } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       include: {
         registrations: {
           where: { status: { in: ['APPROVED', 'PENDING'] } },
-          include: { user: { select: { hasDrivingChip: true } } },
+          include: { user: { select: { hasDrivingChip: true, certification: true } } },
         },
       },
     }),
@@ -95,12 +97,18 @@ meRouter.get('/', async (req, res) => {
   res.json(req.user);
 });
 
-/** PATCH /api/me  { fullName?, hasDrivingChip? } */
+/** PATCH /api/me  { fullName?, hasDrivingChip?, certification? } */
 meRouter.patch('/', async (req, res) => {
   const b = asBody(req.body);
   const fullName = optString(b, 'fullName', 80)?.replace(/\s+/g, ' ');
   if (fullName !== undefined && fullName.length < 2) throw new ApiError(400, 'VALIDATION', 'יש להזין שם מלא.');
-  res.json(await updateMyProfile(req.user!.id, { fullName, hasDrivingChip: optBool(b, 'hasDrivingChip') }));
+  res.json(
+    await updateMyProfile(req.user!.id, {
+      fullName,
+      hasDrivingChip: optBool(b, 'hasDrivingChip'),
+      certification: optEnum(b, 'certification', ['NONE', 'LEVEL_B', 'LEVEL_C'] as const),
+    }),
+  );
 });
 
 /** POST /api/me/logout */

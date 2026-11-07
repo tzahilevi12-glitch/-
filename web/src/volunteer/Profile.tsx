@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { api, getSession, setSession } from '../api.ts';
-import type { Me } from '../types.ts';
-import { WheelIcon, toast } from '../ui.tsx';
+import type { Certification, Me } from '../types.ts';
+import { CERTIFICATIONS, CERT_LABEL } from '../format.ts';
+import { ShieldIcon, WheelIcon, toast } from '../ui.tsx';
 
 export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
   const [fullName, setFullName] = useState(me.fullName);
   const [chip, setChip] = useState(me.hasDrivingChip);
+  const [certification, setCertification] = useState<Certification>(me.certification ?? 'NONE');
   const [busy, setBusy] = useState(false);
-  const dirty = fullName.trim() !== me.fullName || chip !== me.hasDrivingChip;
+  const dirty = fullName.trim() !== me.fullName || chip !== me.hasDrivingChip || certification !== (me.certification ?? 'NONE');
 
   async function save() {
     setBusy(true);
     try {
-      const updated = await api<Me>('/me', { method: 'PATCH', body: { fullName: fullName.trim(), hasDrivingChip: chip } });
+      const updated = await api<Me>('/me', { method: 'PATCH', body: { fullName: fullName.trim(), hasDrivingChip: chip, certification } });
       const s = getSession('volunteer');
       if (s) setSession({ ...s, fullName: updated.fullName }, 'volunteer');
       onSaved(updated);
@@ -44,7 +46,8 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
         </label>
 
         <div className="field">
-          <span className="field-label" id="chip-label">
+          <span className="field-label field-label-icon" id="chip-label">
+            <WheelIcon size={16} />
             צ'יפ נהיגה
           </span>
           <div className="segmented" role="radiogroup" aria-labelledby="chip-label">
@@ -55,7 +58,21 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
               אין לי
             </button>
           </div>
-          <p className="muted small">השינוי חל על המשמרות שכבר נרשמת אליהן ועל כל הרשמה מעכשיו.</p>
+        </div>
+
+        <div className="field">
+          <span className="field-label field-label-icon" id="cert-label">
+            <ShieldIcon size={16} />
+            הסמכה
+          </span>
+          <div className="segmented segmented-3" role="radiogroup" aria-labelledby="cert-label">
+            {CERTIFICATIONS.map((c) => (
+              <button key={c} role="radio" aria-checked={certification === c} className={certification === c ? 'is-on' : ''} onClick={() => setCertification(c)}>
+                {CERT_LABEL[c]}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">השינויים חלים על המשמרות שכבר נרשמת אליהן ועל כל הרשמה מעכשיו.</p>
         </div>
 
         <button className="btn btn-primary btn-block" onClick={save} disabled={!dirty || busy || fullName.trim().length < 2}>

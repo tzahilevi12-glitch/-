@@ -1,12 +1,15 @@
 export type Role = 'VOLUNTEER' | 'ADMIN';
 export type ShiftType = 'MORNING' | 'EVENING' | 'NIGHT';
 export type Badge = 'DRIVER_NEEDED' | 'OPEN_FOR_ALL' | 'FULL';
+/** Level B / Level C volunteers can open an additional patrol car: they may join full shifts. */
+export type Certification = 'NONE' | 'LEVEL_B' | 'LEVEL_C';
 
 export interface Me {
   id: string;
   fullName: string;
   role: Role;
   hasDrivingChip: boolean;
+  certification: Certification;
   isActive: boolean;
 }
 
@@ -25,6 +28,7 @@ interface ShiftBase {
   badge: Badge;
   driverAlert: 'GREEN' | 'RED';
   seatsTaken: number;
+  extraVolunteers: number;
   seatsLeft: number;
   driversMissing: number;
   driverOnly: boolean;
@@ -53,6 +57,7 @@ export interface RosterPerson {
   userId: string;
   fullName: string;
   hasDrivingChip: boolean;
+  certification: Certification;
   startTime: string;
   endTime: string;
   isPartial: boolean;
@@ -93,6 +98,7 @@ export interface Volunteer {
   id: string;
   fullName: string;
   hasDrivingChip: boolean;
+  certification: Certification;
   isActive: boolean;
   createdAt: string;
   upcomingShifts: number;

@@ -11,6 +11,17 @@ export type ShiftType = 'MORNING' | 'EVENING' | 'NIGHT';
 export type ShiftStatus = 'OPEN' | 'FILLED' | 'COMPLETED';
 export type RegistrationStatus = 'APPROVED' | 'PENDING' | 'CANCELLED';
 
+/**
+ * Volunteer qualification. Level B (שלב ב') and Level C (שלב ג') volunteers may open an
+ * additional patrol car, so they can join ANY shift regardless of maxVolunteers, and their
+ * places are extra: they never use up the shift's regular seats.
+ */
+export type Certification = 'NONE' | 'LEVEL_B' | 'LEVEL_C';
+
+export function bypassesCapacity(c: Certification | null | undefined): boolean {
+  return c === 'LEVEL_B' || c === 'LEVEL_C';
+}
+
 export const MINUTES_PER_DAY = 1440;
 
 /** Station default hours. NIGHT→MORNING overlap (06:00–07:00) is the handover briefing. */
@@ -111,8 +122,9 @@ export interface ShiftCapacity {
 }
 
 export interface SeatCounts {
-  approvedTotal: number;
-  approvedDrivers: number; // any approved driver counts, even for part of the shift
+  approvedTotal: number; // approved volunteers holding a REGULAR seat (Level B/C not included)
+  approvedDrivers: number; // any approved driver counts, even for part of the shift (Level B/C included)
+  approvedExtra?: number; // approved Level B/C volunteers (extra patrol car, outside maxVolunteers)
 }
 
 export interface Staffing extends SeatCounts {
@@ -158,8 +170,8 @@ export type RegistrationDecision =
   | { outcome: 'REJECTED'; code: RejectionCode; message: string };
 
 export interface RegistrationContext {
-  /** Driving-chip status comes from the volunteer's profile at the moment they book. */
-  user: { isActive: boolean; hasDrivingChip: boolean };
+  /** Driving chip and qualification come from the volunteer's profile at the moment they book. */
+  user: { isActive: boolean; hasDrivingChip: boolean; certification?: Certification };
   shift: ShiftCapacity & { date: string; status: ShiftStatus; published: boolean; window: Interval };
   requested: { startTime?: string | null; endTime?: string | null };
   counts: SeatCounts;
@@ -193,6 +205,9 @@ export function decideRegistration(ctx: RegistrationContext): RegistrationDecisi
     return reject('ONE_SHIFT_PER_DAY', 'כבר יש לך משמרת ביום הזה. אפשר להירשם למשמרת אחת ביום.');
   }
 
+  // Level B/C: may open an additional patrol car — capacity and driver reservation don't apply.
+  if (bypassesCapacity(user.certification)) return { outcome: 'APPROVED', interval };
+
   const staffing = computeStaffing(shift, ctx.counts);
   if (staffing.isFull) return reject('SHIFT_FULL', 'המשמרת מלאה.');
   if (staffing.remainingSeatsReservedForDrivers && !user.hasDrivingChip) return { outcome: 'WAITLISTED', interval };
@@ -206,16 +221,19 @@ export function nextShiftStatus(current: ShiftStatus, staffing: Staffing): Shift
 
 /**
  * After a seat frees up, pick which waitlisted volunteer (oldest first) may be
- * promoted, respecting the driver reservation. Returns null if nobody qualifies.
+ * promoted, respecting the driver reservation. Level B/C volunteers are promoted
+ * regardless of seats. Returns null if nobody qualifies.
  */
-export function pickPromotion<T extends { hasDrivingChip: boolean; createdAt: Date }>(
+export function pickPromotion<T extends { hasDrivingChip: boolean; createdAt: Date; certification?: Certification }>(
   cap: ShiftCapacity,
   counts: SeatCounts,
   waitlist: T[],
 ): T | null {
+  const ordered = [...waitlist].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const certified = ordered.find((w) => bypassesCapacity(w.certification));
+  if (certified) return certified;
   const staffing = computeStaffing(cap, counts);
   if (staffing.isFull) return null;
-  const ordered = [...waitlist].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   if (staffing.remainingSeatsReservedForDrivers) return ordered.find((w) => w.hasDrivingChip) ?? null;
   return ordered[0] ?? null;
 }
@@ -226,6 +244,7 @@ export interface ActiveRegistration {
   status: 'APPROVED' | 'PENDING';
   startTime: string | null;
   endTime: string | null;
+  certification?: Certification;
 }
 
 /** Validate a commander's change to hours/capacity against existing sign-ups. */
@@ -242,7 +261,8 @@ export function checkShiftChange(
       return { ok: false, message: `מתנדב רשום לשעות ${ltrRange(r.startTime ?? '', r.endTime ?? '')}, מחוץ לשעות החדשות.` };
     }
   }
-  const approved = regs.filter((r) => r.status === 'APPROVED').length;
+  // Level B/C volunteers are extra (additional patrol car) and don't count against the maximum.
+  const approved = regs.filter((r) => r.status === 'APPROVED' && !bypassesCapacity(r.certification)).length;
   if (approved > next.maxVolunteers) {
     return { ok: false, message: `רשומים ${approved} מתנדבים. יש להסיר חלק מהם לפני הקטנת המספר.` };
   }

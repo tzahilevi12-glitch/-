@@ -63,6 +63,9 @@ All together, that's about $13/month for an always-on site with a permanent data
 
 When you get new code:
 
+(Database changes, like a new field, are applied automatically when the site restarts. Existing data is kept.)
+
+
 1. Upload the changed files to the same GitHub repository (**Add file → Upload files**).
 2. Click **Commit changes**.
 

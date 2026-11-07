@@ -1,10 +1,10 @@
 import { prisma, withSerializableTx, type Tx } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
-import { addDays } from '../domain/registrationRules.ts';
+import { addDays, type Certification } from '../domain/registrationRules.ts';
 import { fromIsoDate, todayInStation } from '../lib/dates.ts';
 import { rebalanceShift } from './registrationService.ts';
 
-const USER_VIEW = { id: true, fullName: true, role: true, hasDrivingChip: true, isActive: true, createdAt: true } as const;
+const USER_VIEW = { id: true, fullName: true, role: true, hasDrivingChip: true, certification: true, isActive: true, createdAt: true } as const;
 
 /** Upcoming = from yesterday (a NIGHT shift may still be running) and not completed. */
 const upcomingShift = () => ({ date: { gte: fromIsoDate(addDays(todayInStation(), -1)) }, status: { not: 'COMPLETED' as const } });
@@ -19,14 +19,17 @@ async function rebalanceUserShifts(tx: Tx, userId: string) {
   return ids.length;
 }
 
-/** A volunteer edits their own name or driving-chip status. Their upcoming shifts are re-checked. */
-export async function updateMyProfile(userId: string, patch: { fullName?: string; hasDrivingChip?: boolean }) {
+type Before = { hasDrivingChip: boolean; certification: string };
+const qualificationChanged = (before: Before, patch: { hasDrivingChip?: boolean; certification?: Certification }) =>
+  (patch.hasDrivingChip !== undefined && patch.hasDrivingChip !== before.hasDrivingChip) ||
+  (patch.certification !== undefined && patch.certification !== before.certification);
+
+/** A volunteer edits their own name, driving chip or Level B/C qualification. Their upcoming shifts are re-checked. */
+export async function updateMyProfile(userId: string, patch: { fullName?: string; hasDrivingChip?: boolean; certification?: Certification }) {
   return withSerializableTx(async (tx) => {
-    const before = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { hasDrivingChip: true } });
+    const before = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { hasDrivingChip: true, certification: true } });
     const user = await tx.user.update({ where: { id: userId }, data: patch, select: USER_VIEW });
-    if (patch.hasDrivingChip !== undefined && patch.hasDrivingChip !== before.hasDrivingChip) {
-      await rebalanceUserShifts(tx, userId);
-    }
+    if (qualificationChanged(before, patch)) await rebalanceUserShifts(tx, userId);
     return user;
   });
 }
@@ -50,7 +53,11 @@ export async function listVolunteers(opts: { search?: string }) {
  * Commander corrects a volunteer's driving chip or pauses them.
  * Pausing cancels their upcoming sign-ups and refills those seats from the waitlist.
  */
-export async function adminUpdateUser(actorId: string, userId: string, patch: { hasDrivingChip?: boolean; isActive?: boolean; fullName?: string }) {
+export async function adminUpdateUser(
+  actorId: string,
+  userId: string,
+  patch: { hasDrivingChip?: boolean; certification?: Certification; isActive?: boolean; fullName?: string },
+) {
   if (actorId === userId && patch.isActive === false) {
     throw new ApiError(409, 'SELF_LOCKOUT', 'אי אפשר להשהות את החשבון שלך.');
   }
@@ -69,7 +76,7 @@ export async function adminUpdateUser(actorId: string, userId: string, patch: { 
       await tx.session.deleteMany({ where: { userId } });
       for (const id of new Set<string>(regs.map((r) => r.shiftId))) await rebalanceShift(tx, id);
       cancelled = regs.length;
-    } else if (patch.hasDrivingChip !== undefined && patch.hasDrivingChip !== before.hasDrivingChip) {
+    } else if (qualificationChanged(before, patch)) {
       await rebalanceUserShifts(tx, userId);
     }
     return { user, cancelledRegistrations: cancelled };

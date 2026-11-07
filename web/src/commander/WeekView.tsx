@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, ltr, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { DriverChip, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { CertMark, DriverChip, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
@@ -10,7 +10,7 @@ const defaultStart: Record<ShiftType, string> = { MORNING: '06:00', EVENING: '14
 const defaultEnd: Record<ShiftType, string> = { MORNING: '15:00', EVENING: '22:00', NIGHT: '07:00' };
 
 function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
-  const shown = shift.approved.slice(0, 3);
+  const shown = shift.approved.slice(0, 4);
   const more = shift.approved.length - shown.length;
   const green = shift.driverAlert === 'GREEN';
   return (
@@ -21,13 +21,17 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
     >
       <span className="cell-top">
         <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{green ? 'יש נהג' : 'אין נהג'}</span>
-        <span className="cell-seats">{ltr(`${shift.seatsTaken}/${shift.maxVolunteers}`)}</span>
+        <span className="cell-seats">
+          {ltr(`${shift.seatsTaken}/${shift.maxVolunteers}`)}
+          {shift.extraVolunteers > 0 && <span className="extra-tag" title="מוסמכים בניידת נוספת">{ltr(`+${shift.extraVolunteers}`)}</span>}
+        </span>
       </span>
       <span className="cell-names">
         {shown.map((p) => (
           <span key={p.registrationId} className="cell-name">
             {p.hasDrivingChip && <DriverChip small />}
             <span className="cell-name-text">{p.fullName}</span>
+            <CertMark certification={p.certification} />
             {p.isPartial && <span className="cell-hours">{range(p.startTime, p.endTime)}</span>}
           </span>
         ))}

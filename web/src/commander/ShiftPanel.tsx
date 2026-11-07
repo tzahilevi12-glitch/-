@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
-import { DriverChip, DutyBar, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { CertMark, DriverChip, DutyBar, Sheet, TimeSelect, toast } from '../ui.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
   return (
@@ -11,6 +11,7 @@ function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
         <span className="person-name">
           {p.hasDrivingChip && <DriverChip small />}
           {p.fullName}
+          <CertMark certification={p.certification} />
         </span>
         <span className="muted small">{p.isPartial ? range(p.startTime, p.endTime) : 'כל המשמרת'}</span>
       </div>
@@ -68,6 +69,7 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
           <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{driverText}</span>
           <span className="muted">
             {shift.seatsTaken} מתוך {shift.maxVolunteers} מקומות תפוסים
+            {shift.extraVolunteers > 0 && `, ועוד ${shift.extraVolunteers === 1 ? 'מוסמך אחד' : `${shift.extraVolunteers} מוסמכים`} בניידת נוספת`}
           </span>
           <span className={`pub-tag${shift.published ? '' : ' is-draft'}`}>{shift.published ? 'פורסם' : 'טיוטה'}</span>
           {shift.status === 'COMPLETED' && <span className="pub-tag">הסתיימה</span>}

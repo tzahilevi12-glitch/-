@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.ts';
-import type { BoardShift } from '../types.ts';
-import { SHIFT_LABEL, addDays, dayLabel, range, todayLocal } from '../format.ts';
+import type { BoardShift, Certification } from '../types.ts';
+import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
 import { LoadState, ShiftBadge, useLoad } from '../ui.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -12,7 +12,7 @@ function dayHeading(iso: string): string {
   return dayLabel(iso);
 }
 
-export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
+export function ShiftBoard({ isDriver, certification }: { isDriver: boolean; certification: Certification }) {
   const { data, error, loading, reload } = useLoad(() => api<{ shifts: BoardShift[] }>('/shifts'));
   const [selected, setSelected] = useState<BoardShift | null>(null);
 
@@ -24,7 +24,11 @@ export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
   return (
     <section className="page">
       <h1 className="page-title">לוח משמרות</h1>
-      <p className="page-sub">משמרות שפורסמו ויש בהן מקום. אפשר להירשם למשמרת אחת ביום.</p>
+      <p className="page-sub">
+        {isCertified(certification)
+          ? 'כל המשמרות שפורסמו, כולל מלאות (כמוסמך אפשר לפתוח ניידת נוספת). אפשר להירשם למשמרת אחת ביום.'
+          : 'משמרות שפורסמו ויש בהן מקום. אפשר להירשם למשמרת אחת ביום.'}
+      </p>
 
       {days.size === 0 && (
         <div className="empty">
@@ -39,7 +43,6 @@ export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
             {shifts.map((s) => {
               const mine = s.myRegistration;
               const blocked = !mine && s.iHaveShiftThatDay;
-              const waitlist = s.driverOnly && !isDriver;
               return (
                 <li key={s.id} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
                   <div className="shift-main">
@@ -48,9 +51,9 @@ export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
                       <span className="shift-hours">{range(s.startTime, s.endTime)}</span>
                     </div>
                     <div className="shift-meta">
-                      <ShiftBadge badge={s.badge} driverOnly={s.driverOnly} />
+                      <ShiftBadge badge={s.badge} />
                       <span className="muted small">
-                        נותרו {s.seatsLeft} מתוך {s.maxVolunteers} מקומות
+                        {s.seatsLeft > 0 ? `נותרו ${s.seatsLeft} מתוך ${s.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
                       </span>
                     </div>
                   </div>
@@ -62,8 +65,8 @@ export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
                     ) : blocked ? (
                       <span className="muted small">יש לך משמרת ביום הזה</span>
                     ) : (
-                      <button className={`btn ${waitlist ? 'btn-ghost' : 'btn-primary'}`} onClick={() => setSelected(s)}>
-                        {waitlist ? 'הצטרפות להמתנה' : 'הרשמה'}
+                      <button className="btn btn-primary" onClick={() => setSelected(s)}>
+                        {s.badge === 'FULL' ? 'הרשמה (ניידת נוספת)' : 'הרשמה'}
                       </button>
                     )}
                   </div>
@@ -78,6 +81,7 @@ export function ShiftBoard({ isDriver }: { isDriver: boolean }) {
         <SignUpSheet
           shift={selected}
           isDriver={isDriver}
+          certification={certification}
           onClose={() => setSelected(null)}
           onDone={() => {
             setSelected(null);

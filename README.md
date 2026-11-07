@@ -46,12 +46,13 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 
 | Rule | Behaviour |
 |---|---|
-| Sign-up | Open: name plus driving-chip status, no approval. The status is read from the profile on every booking. |
+| Sign-up | Open: name, driving-chip status and qualification (none / Level B / Level C), no approval. Read from the profile on every booking. |
+| Level B / C (מוסמך שלב ב'/ג') | Can open an additional patrol car: they can join **any** shift, even a full one, ignoring `maxVolunteers` and the driver reservation. Their places are extra (shown as "+1" on the roster) and don't use up regular seats. All other rules still apply (published, one shift per day, not ended). |
 | Visibility | Volunteers see only **published** shifts that haven't ended. The commander publishes a week at a time (weeks start Sunday). |
-| Capacity | `maxVolunteers` is the total per shift, whatever the hours. With max 2, sign-ups for 16–20 and 18–22 fill it. |
+| Capacity | `maxVolunteers` is the number of regular seats per shift, whatever the hours. With max 2, sign-ups for 16–20 and 18–22 fill it. Level B/C volunteers are extra. |
 | Partial hours | Any range inside the shift, including after midnight on a night shift. Hours are shown on the roster but don't affect capacity. |
 | Driver coverage | Green as soon as `requiredDrivers` approved volunteers have a chip, even if they're only on for part of the shift. |
-| Driver priority | When the remaining seats are all needed for drivers, a non-driver goes on the waitlist. They're promoted automatically, or the commander approves them. |
+| Driver priority | When the remaining seats are all needed for drivers, a non-driver's sign-up goes on the waitlist (no "drivers only" warning is shown; volunteers just see their status). They're promoted automatically, or the commander approves them. |
 | One per day | One shift per volunteer per calendar day (the shift's start date). Night shift + next-day morning is allowed (06:00–07:00 is the briefing). |
 | Cancellation alert | Cancelling is a single "are you sure?" popup. It always creates an alert for the scheduler, in the same transaction, so it can't happen silently. The scheduler sees it as a popup in the dashboard (checked on load and every 30 s) until they press "קראתי". Cancellations less than 24 h before the shift are flagged urgent. |
 | Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |

@@ -13,7 +13,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
   const tokenHash = hashToken(token);
   const session = await prisma.session.findUnique({
     where: { tokenHash },
-    include: { user: { select: { id: true, fullName: true, role: true, isActive: true, hasDrivingChip: true } } },
+    include: { user: { select: { id: true, fullName: true, role: true, isActive: true, hasDrivingChip: true, certification: true } } },
   });
   if (!session) throw new ApiError(401, 'UNAUTHENTICATED', 'החיבור הסתיים. יש להזין שם כדי להמשיך.');
   if (Date.now() - session.lastUsedAt.getTime() > TOUCH_AFTER_MS) {

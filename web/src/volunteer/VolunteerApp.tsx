@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.ts';
 import type { Me, Notification } from '../types.ts';
-import { LoadState, Sheet, WheelIcon, useLoad } from '../ui.tsx';
+import { CertMark, LoadState, Sheet, WheelIcon, useLoad } from '../ui.tsx';
 import { MyShifts } from './MyShifts.tsx';
 import { Profile } from './Profile.tsx';
 import { ShiftBoard } from './ShiftBoard.tsx';
@@ -70,13 +70,14 @@ export function VolunteerApp({ tab }: { tab: Tab }) {
           <a className="site-who" href="#/profile" title={me.hasDrivingChip ? "יש צ'יפ נהיגה" : undefined}>
             {me.hasDrivingChip && <WheelIcon size={15} />}
             {me.fullName}
+            <CertMark certification={me.certification ?? 'NONE'} />
           </a>
         </div>
       </header>
 
       <main className="site-main">
         {tab === 'mine' && <MyShifts isDriver={me.hasDrivingChip} name={me.fullName} />}
-        {tab === 'board' && <ShiftBoard isDriver={me.hasDrivingChip} />}
+        {tab === 'board' && <ShiftBoard isDriver={me.hasDrivingChip} certification={me.certification ?? 'NONE'} />}
         {tab === 'profile' && <Profile me={me} onSaved={setData} />}
       </main>
 

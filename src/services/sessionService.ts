@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
+import type { Certification } from '../domain/registrationRules.ts';
 
 /**
  * Lightweight device sessions for open registration. The token is returned once,
@@ -17,12 +18,12 @@ async function createSession(userId: string): Promise<string> {
   return token;
 }
 
-const USER_VIEW = { id: true, fullName: true, role: true, hasDrivingChip: true, isActive: true } as const;
+const USER_VIEW = { id: true, fullName: true, role: true, hasDrivingChip: true, certification: true, isActive: true } as const;
 
 /** A volunteer enters their name and driving-chip status — that's the whole sign-up. */
-export async function enterAsVolunteer(input: { fullName: string; hasDrivingChip: boolean }) {
+export async function enterAsVolunteer(input: { fullName: string; hasDrivingChip: boolean; certification: Certification }) {
   const user = await prisma.user.create({
-    data: { fullName: input.fullName, hasDrivingChip: input.hasDrivingChip, role: 'VOLUNTEER' },
+    data: { fullName: input.fullName, hasDrivingChip: input.hasDrivingChip, certification: input.certification, role: 'VOLUNTEER' },
     select: USER_VIEW,
   });
   return { user, token: await createSession(user.id) };

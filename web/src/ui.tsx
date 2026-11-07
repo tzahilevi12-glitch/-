@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Badge as BadgeKind } from './types.ts';
-import { fromMin, inWindow, windowOf } from './format.ts';
+import type { Badge as BadgeKind, Certification } from './types.ts';
+import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, isCertified, windowOf } from './format.ts';
 
 // ───────────── icons ─────────────
 
@@ -14,6 +14,27 @@ export function WheelIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+/** Police badge / shield — Level B / Level C qualification. */
+export function ShieldIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+      <path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6L12 3z" />
+      <path d="M12 8.2l1.2 2.5 2.7.3-2 1.8.6 2.7-2.5-1.4-2.5 1.4.6-2.7-2-1.8 2.7-.3z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Small "שלב ב'" / "שלב ג'" tag next to a volunteer's name. */
+export function CertMark({ certification }: { certification: Certification }) {
+  if (!isCertified(certification)) return null;
+  return (
+    <span className="cert-mark" title={CERT_LABEL[certification]}>
+      <ShieldIcon size={11} />
+      {CERT_SHORT[certification]}
+    </span>
+  );
+}
+
 export function CheckIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
@@ -24,13 +45,13 @@ export function CheckIcon({ size = 16 }: { size?: number }) {
 
 // ───────────── badges ─────────────
 
-export function ShiftBadge({ badge, driverOnly }: { badge: BadgeKind; driverOnly?: boolean }) {
+export function ShiftBadge({ badge }: { badge: BadgeKind }) {
   if (badge === 'FULL') return <span className="badge badge-full">מלא</span>;
   if (badge === 'DRIVER_NEEDED') {
     return (
       <span className="badge badge-driver">
         <WheelIcon size={14} />
-        {driverOnly ? 'לנהגים בלבד' : 'דרוש נהג'}
+        דרוש נהג
       </span>
     );
   }

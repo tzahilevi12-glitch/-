@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, setSession } from '../api.ts';
-import type { Me } from '../types.ts';
-import { WheelIcon } from '../ui.tsx';
+import type { Certification, Me } from '../types.ts';
+import { ShieldIcon, WheelIcon } from '../ui.tsx';
 
 /** The station's day: three shifts with the handover overlaps (time runs right to left). */
 function DayStrip() {
@@ -31,9 +31,16 @@ function DayStrip() {
   );
 }
 
+const CERT_OPTIONS: Array<{ value: Certification; title: string; sub: string }> = [
+  { value: 'NONE', title: 'ללא הסמכה', sub: 'מתנדב/ת' },
+  { value: 'LEVEL_B', title: "מוסמך שלב ב'", sub: 'יכול לפתוח ניידת נוספת' },
+  { value: 'LEVEL_C', title: "מוסמך שלב ג'", sub: 'יכול לפתוח ניידת נוספת' },
+];
+
 export function EnterScreen() {
   const [fullName, setFullName] = useState('');
   const [chip, setChip] = useState<boolean | null>(null);
+  const [certification, setCertification] = useState<Certification>('NONE');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -46,7 +53,8 @@ export function EnterScreen() {
     try {
       const res = await api<{ token: string; user: Me }>('/public/enter', {
         method: 'POST',
-        body: { fullName: fullName.trim(), hasDrivingChip: chip },
+        body: { fullName: fullName.trim(), hasDrivingChip: chip, certification },
+        area: 'volunteer',
       });
       setSession({ token: res.token, role: res.user.role, fullName: res.user.fullName }, 'volunteer');
       location.hash = '#/board';
@@ -63,6 +71,7 @@ export function EnterScreen() {
         <h1>בחירת משמרות לשבוע</h1>
         <DayStrip />
       </header>
+      <div className="police-band" aria-hidden="true" />
 
       <form className="enter-form" onSubmit={submit} noValidate>
         <label className="field">
@@ -78,7 +87,10 @@ export function EnterScreen() {
         </label>
 
         <fieldset className="field">
-          <legend className="field-label">צ'יפ נהיגה</legend>
+          <legend className="field-label field-label-icon">
+            <WheelIcon size={16} />
+            צ'יפ נהיגה
+          </legend>
           <div className="choice-pair">
             <button
               type="button"
@@ -86,7 +98,9 @@ export function EnterScreen() {
               aria-pressed={chip === true}
               onClick={() => setChip(true)}
             >
-              <WheelIcon size={22} />
+              <span className="choice-icon is-driver" aria-hidden="true">
+                <WheelIcon size={20} />
+              </span>
               <span className="choice-title">יש לי צ'יפ נהיגה</span>
               <span className="choice-sub">מורשה לנהוג בניידת</span>
             </button>
@@ -96,10 +110,35 @@ export function EnterScreen() {
               aria-pressed={chip === false}
               onClick={() => setChip(false)}
             >
-              <span className="choice-dash" aria-hidden="true" />
+              <span className="choice-icon" aria-hidden="true">
+                <span className="choice-dash" />
+              </span>
               <span className="choice-title">אין לי צ'יפ נהיגה</span>
               <span className="choice-sub">מצטרף לסיור כשותף</span>
             </button>
+          </div>
+        </fieldset>
+
+        <fieldset className="field">
+          <legend className="field-label field-label-icon">
+            <ShieldIcon size={16} />
+            הסמכה
+          </legend>
+          <div className="cert-row" role="radiogroup" aria-label="הסמכה">
+            {CERT_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                role="radio"
+                aria-checked={certification === o.value}
+                className={`cert-option${certification === o.value ? ' is-selected' : ''}`}
+                onClick={() => setCertification(o.value)}
+              >
+                {o.value !== 'NONE' && <ShieldIcon size={18} />}
+                <span className="choice-title">{o.title}</span>
+                <span className="choice-sub">{o.sub}</span>
+              </button>
+            ))}
           </div>
         </fieldset>
 
