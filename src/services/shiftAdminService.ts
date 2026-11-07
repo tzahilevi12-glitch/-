@@ -11,7 +11,6 @@ import {
   ltrRange,
   shiftWindow,
   weekStartOf,
-  type Certification,
 } from '../domain/registrationRules.ts';
 import { rebalanceShift } from './registrationService.ts';
 import { loadShift, overrideHHMM } from './shiftState.ts';
@@ -101,7 +100,7 @@ async function updateShiftTx(tx: Tx, shiftId: string, patch: ShiftPatch) {
   };
   const check = checkShiftChange(
     next,
-    active.map((r) => ({ status: r.status as 'APPROVED' | 'PENDING', ...overrideHHMM(r), certification: r.user.certification as Certification })),
+    active.map((r) => ({ status: r.status as 'APPROVED' | 'PENDING', ...overrideHHMM(r), opensNewCar: r.opensNewCar })),
   );
   if (!check.ok) throw new ApiError(409, 'CONFLICTS_WITH_REGISTRATIONS', check.message);
 

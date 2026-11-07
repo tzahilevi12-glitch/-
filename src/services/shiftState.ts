@@ -10,8 +10,6 @@ import {
   isWholeShift,
   resolveHours,
   shiftWindow,
-  bypassesCapacity,
-  type Certification,
   type Interval,
   type SeatCounts,
   type Staffing,
@@ -42,10 +40,10 @@ export function overridesFor(window: Interval, interval: Interval) {
   return { startTime: f.start, endTime: f.end };
 }
 
-/** Regular seats exclude Level B/C volunteers, who are extra (additional patrol car). */
-export function countSeats(regs: Array<{ status: string; user: { hasDrivingChip: boolean; certification?: Certification | string } }>): SeatCounts {
+/** Regular seats exclude sign-ups that open an additional patrol car (they are extra). */
+export function countSeats(regs: Array<{ status: string; opensNewCar?: boolean; user: { hasDrivingChip: boolean } }>): SeatCounts {
   const approved = regs.filter((r) => r.status === 'APPROVED');
-  const extra = approved.filter((r) => bypassesCapacity(r.user.certification as Certification));
+  const extra = approved.filter((r) => r.opensNewCar);
   return {
     approvedTotal: approved.length - extra.length,
     approvedDrivers: approved.filter((r) => r.user.hasDrivingChip).length,

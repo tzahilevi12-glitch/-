@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optString } from '../lib/validate.ts';
-import { CERTIFICATIONS, absoluteMinute, addDays, bypassesCapacity, formatInterval, type Certification } from '../domain/registrationRules.ts';
+import { CERTIFICATIONS, absoluteMinute, addDays, canOpenPatrolCar, formatInterval, type Certification } from '../domain/registrationRules.ts';
 import { cancelRegistration, registerForShift } from '../services/registrationService.ts';
 import { endSession } from '../services/sessionService.ts';
 import { registrationInterval, staffingView, windowOf } from '../services/shiftState.ts';
@@ -25,7 +25,7 @@ const hours = (f: { start: string; end: string }) => ({ startTime: f.start, endT
 shiftsRouter.get('/', async (req, res) => {
   const now = nowInStation();
   const userId = req.user!.id;
-  const certified = bypassesCapacity(req.user!.certification as Certification);
+  const certified = canOpenPatrolCar(req.user!.certification as Certification);
 
   const [board, mine] = await Promise.all([
     loadBoard(certified),
@@ -42,7 +42,7 @@ shiftsRouter.get('/', async (req, res) => {
       return {
         ...view,
         myRegistration: own
-          ? { id: own.id, status: own.status, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
+          ? { id: own.id, status: own.status, opensNewCar: own.opensNewCar, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
           : null,
         iHaveShiftThatDay: myDates.has(toIsoDate(shift.date)),
       };
@@ -51,7 +51,8 @@ shiftsRouter.get('/', async (req, res) => {
 });
 
 /**
- * POST /api/shifts/:shiftId/registrations   body (optional): { "startTime": "16:00", "endTime": "20:00" }
+ * POST /api/shifts/:shiftId/registrations   body (optional): { "startTime": "16:00", "endTime": "20:00", "opensNewCar": true }
+ * opensNewCar (Level B/C only): opening an additional patrol car — allowed even when the shift is full.
  * 201 = on the shift, 202 = waitlisted.
  */
 shiftsRouter.post('/:shiftId/registrations', async (req, res) => {
@@ -59,9 +60,16 @@ shiftsRouter.post('/:shiftId/registrations', async (req, res) => {
   const result = await registerForShift(req.user!.id, req.params.shiftId, {
     startTime: optHHMM(body, 'startTime'),
     endTime: optHHMM(body, 'endTime'),
+    opensNewCar: optBool(body, 'opensNewCar'),
   });
   res.status(result.waitlisted ? 202 : 201).json({
-    registration: { id: result.registration.id, shiftId: result.registration.shiftId, status: result.registration.status, ...result.hours },
+    registration: {
+      id: result.registration.id,
+      shiftId: result.registration.shiftId,
+      status: result.registration.status,
+      opensNewCar: result.registration.opensNewCar,
+      ...result.hours,
+    },
     message: result.message,
     shift: staffingView(result.staffing),
   });
@@ -128,6 +136,7 @@ meRouter.get('/shifts', async (req, res) => {
         registrationId: r.id,
         shiftId: r.shiftId,
         status: r.status,
+        opensNewCar: r.opensNewCar,
         date: toIsoDate(r.shift.date),
         shiftType: r.shift.shiftType,
         shiftStartTime: formatInterval(window).start,

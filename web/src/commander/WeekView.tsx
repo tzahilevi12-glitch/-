@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, ltr, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { CertMark, DriverChip, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { CarIcon, CertMark, DriverChip, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
@@ -37,6 +37,11 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
             {p.hasDrivingChip && <DriverChip small />}
             <span className="cell-name-text">{p.fullName}</span>
             <CertMark certification={p.certification} />
+            {p.opensNewCar && (
+              <span className="car-mark" title="פותח ניידת נוספת" aria-label="פותח ניידת נוספת">
+                <CarIcon size={13} />
+              </span>
+            )}
             {p.isPartial && <span className="cell-hours">{range(p.startTime, p.endTime)}</span>}
           </span>
         ))}

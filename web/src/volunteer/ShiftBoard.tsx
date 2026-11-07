@@ -88,7 +88,7 @@ export function ShiftBoard({
                   <div className="shift-action">
                     {readOnly ? null : mine ? (
                       <span className={`mine-tag${mine.status === 'PENDING' ? ' is-pending' : ''}`}>
-                        {mine.status === 'PENDING' ? 'ברשימת המתנה' : `נרשמת: ${range(mine.startTime, mine.endTime)}`}
+                        {mine.status === 'PENDING' ? 'ברשימת המתנה' : `${mine.opensNewCar ? 'נרשמת עם ניידת' : 'נרשמת'}: ${range(mine.startTime, mine.endTime)}`}
                       </span>
                     ) : blocked ? (
                       <span className="muted small">יש לך משמרת ביום הזה</span>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { MyShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, inWindow, minutesUntil, range, windowOf } from '../format.ts';
-import { DutyBar, LoadState, Sheet, useLoad } from '../ui.tsx';
+import { DutyBar, LoadState, NewCarTag, Sheet, useLoad } from '../ui.tsx';
 
 /**
  * Cancelling always notifies the shift scheduler. The volunteer is told so before
@@ -85,6 +85,7 @@ function ShiftCard({ s, isDriver, onCancel }: { s: MyShift; isDriver: boolean; o
           </p>
         </div>
         {s.status === 'PENDING' && <span className="mine-tag is-pending">ברשימת המתנה</span>}
+        {s.opensNewCar && <NewCarTag />}
       </div>
       <DutyBar
         start={s.shiftStartTime}

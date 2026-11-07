@@ -80,6 +80,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
           fullName: r.user.fullName,
           hasDrivingChip: r.user.hasDrivingChip,
           certification: r.user.certification,
+          opensNewCar: r.opensNewCar,
           startTime: f.start,
           endTime: f.end,
           isPartial: interval.start !== window.start || interval.end !== window.end,

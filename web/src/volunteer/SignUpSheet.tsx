@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification } from '../types.ts';
-import { CERT_LABEL, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified, range, timeOptions, windowOf } from '../format.ts';
-import { DutyBar, Sheet, ShiftBadge, ShieldIcon, toast } from '../ui.tsx';
+import { CERT_SHORT, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified, range, timeOptions, windowOf } from '../format.ts';
+import { CarIcon, DutyBar, Sheet, ShiftBadge, toast } from '../ui.tsx';
 
 export function SignUpSheet({
   shift,
@@ -28,7 +28,11 @@ export function SignUpSheet({
   const startTime = partial ? from : shift.startTime;
   const endTime = partial ? to : shift.endTime;
   const valid = inWindow(startTime, w) < inWindow(endTime, w);
-  const certified = isCertified(certification);
+  // Level B/C can open an additional patrol car for this shift. A full shift can only be joined that way.
+  const canOpenCar = isCertified(certification);
+  const shiftFull = shift.seatsLeft === 0;
+  const [openCar, setOpenCar] = useState(canOpenCar && shiftFull);
+  const blockedFull = shiftFull && !openCar;
 
   async function submit() {
     setBusy(true);
@@ -36,7 +40,7 @@ export function SignUpSheet({
     try {
       const res = await api<{ message: string }>(`/shifts/${shift.id}/registrations`, {
         method: 'POST',
-        body: partial ? { startTime, endTime } : {},
+        body: { ...(partial ? { startTime, endTime } : {}), ...(openCar ? { opensNewCar: true } : {}) },
       });
       toast(res.message);
       onDone();
@@ -96,11 +100,6 @@ export function SignUpSheet({
         />
         <p className="muted small">{valid ? durationLabel(startTime, endTime) : 'שעת הסיום צריכה להיות אחרי שעת ההתחלה.'}</p>
 
-        {certified && (
-          <p className="role-note is-cert">
-            <ShieldIcon size={16} /> {CERT_LABEL[certification]}: אפשר להירשם לכל משמרת, גם כשהיא מלאה (ניידת נוספת).
-          </p>
-        )}
 
         {error && (
           <p className="form-error" role="alert">
@@ -109,8 +108,20 @@ export function SignUpSheet({
         )}
       </div>
       <div className="sheet-foot">
-        <button className="btn btn-primary btn-block" onClick={submit} disabled={busy || !valid}>
-          {busy ? 'נרשמים…' : `הרשמה לשעות ${range(startTime, endTime)}`}
+        {canOpenCar && (
+          <label className={`car-check${openCar ? ' is-on' : ''}`}>
+            <input type="checkbox" checked={openCar} onChange={(e) => setOpenCar(e.target.checked)} />
+            <CarIcon size={18} />
+            <span>
+              <span className="car-check-title">מעוניין לפתוח ניידת {CERT_SHORT[certification]}</span>
+              <span className="car-check-sub">
+                {blockedFull ? 'המשמרת מלאה. אפשר להירשם אליה רק בפתיחת ניידת.' : 'ניידת נוספת, מעבר למספר המתנדבים במשמרת.'}
+              </span>
+            </span>
+          </label>
+        )}
+        <button className="btn btn-primary btn-block" onClick={submit} disabled={busy || !valid || blockedFull}>
+          {busy ? 'נרשמים…' : openCar ? `הרשמה ופתיחת ניידת, ${range(startTime, endTime)}` : `הרשמה לשעות ${range(startTime, endTime)}`}
         </button>
       </div>
     </Sheet>

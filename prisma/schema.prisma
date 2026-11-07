@@ -19,8 +19,8 @@ enum Role {
 }
 
 /// NONE = standard volunteer (מתנדב אק״מ). Level A (שלב א') follows the normal rules.
-/// Level B (שלב ב') / Level C (שלב ג') volunteers may open an additional patrol car:
-/// they can join any shift regardless of maxVolunteers, and don't use up regular seats.
+/// Level B (שלב ב') / Level C (שלב ג') volunteers may open an additional patrol car when signing
+/// up (ShiftRegistration.opensNewCar): that sign-up ignores maxVolunteers and doesn't use a regular seat.
 enum Certification {
   NONE
   LEVEL_A
@@ -88,7 +88,7 @@ model Shift {
   startTime       DateTime    @db.Time(0)
   endTime         DateTime    @db.Time(0)
   requiredDrivers Int         @default(1) // approved drivers needed (partial hours count)
-  maxVolunteers   Int         @default(3) // regular seats on the shift, regardless of hours (Level B/C are extra)
+  maxVolunteers   Int         @default(3) // regular seats on the shift, regardless of hours (new-car sign-ups are extra)
   status          ShiftStatus @default(OPEN)
   publishedAt     DateTime?   // null = draft, invisible to volunteers
   seriesId        String?     @db.Uuid
@@ -111,6 +111,8 @@ model ShiftRegistration {
   // Partial hours. Both null = the whole shift (and follows the shift if its hours change).
   startTime DateTime?          @db.Time(0)
   endTime   DateTime?          @db.Time(0)
+  // Level B/C volunteer chose "מעוניין לפתוח ניידת": an additional patrol car, outside maxVolunteers.
+  opensNewCar Boolean          @default(false)
   createdAt DateTime           @default(now()) // reset on re-registration; waitlist order
   updatedAt DateTime           @updatedAt
 

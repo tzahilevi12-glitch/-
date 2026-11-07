@@ -24,6 +24,30 @@ export function ShieldIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+/** Patrol car — "opening an additional patrol car". */
+export function CarIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 16v-3.2l1.8-4.3A2 2 0 0 1 7.6 7.3h8.8a2 2 0 0 1 1.8 1.2L20 12.8V16" />
+      <path d="M3 16h18v2.2H3z" />
+      <circle cx="7.5" cy="18.5" r="1.6" />
+      <circle cx="16.5" cy="18.5" r="1.6" />
+      <path d="M9.5 4.5h2.2M12.3 4.5h2.2" strokeWidth="2.6" />
+    </svg>
+  );
+}
+
+/** "פותח ניידת" tag: this sign-up opens an additional patrol car. */
+export function NewCarTag({ certification, long }: { certification?: Certification; long?: boolean }) {
+  const level = certification && certification !== 'NONE' ? ` ${CERT_SHORT[certification]}` : '';
+  return (
+    <span className="car-tag" title={`פותח ניידת נוספת${level}`}>
+      <CarIcon size={12} />
+      {long ? `פותח ניידת${level}` : 'פותח ניידת'}
+    </span>
+  );
+}
+
 /** Small "שלב א'" / "שלב ב'" / "שלב ג'" tag next to a volunteer's name. */
 export function CertMark({ certification }: { certification: Certification }) {
   if (!certification || certification === 'NONE') return null;

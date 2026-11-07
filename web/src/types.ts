@@ -41,7 +41,7 @@ export interface GuestShift extends ShiftBase {
 }
 
 export interface BoardShift extends ShiftBase {
-  myRegistration: { id: string; status: 'APPROVED' | 'PENDING'; startTime: string; endTime: string } | null;
+  myRegistration: { id: string; status: 'APPROVED' | 'PENDING'; opensNewCar: boolean; startTime: string; endTime: string } | null;
   iHaveShiftThatDay: boolean;
   /** Everyone on the shift (Level B/C included), in sign-up order. */
   registeredCount: number;
@@ -52,6 +52,7 @@ export interface MyShift {
   registrationId: string;
   shiftId: string;
   status: 'APPROVED' | 'PENDING';
+  opensNewCar: boolean;
   date: string;
   shiftType: ShiftType;
   shiftStartTime: string;
@@ -67,6 +68,8 @@ export interface RosterPerson {
   fullName: string;
   hasDrivingChip: boolean;
   certification: Certification;
+  /** Registered to open an additional patrol car (Level B/C). */
+  opensNewCar: boolean;
   startTime: string;
   endTime: string;
   isPartial: boolean;

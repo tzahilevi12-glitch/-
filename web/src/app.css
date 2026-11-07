@@ -260,6 +260,23 @@ button { font: inherit; color: inherit; }
 .segmented-3 { grid-auto-columns: 1fr; }
 .segmented-3 button { font-size: 0.85rem; padding: 0 4px; }
 .input-sm { min-height: 34px; width: auto; padding: 0 8px; font-size: 0.875rem; }
+/* Level B/C: "מעוניין לפתוח ניידת" next to the sign-up button */
+.car-check {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  padding: 12px; margin-bottom: 10px; border-radius: var(--radius-m);
+  border: 1.5px solid var(--line); background: var(--surface);
+}
+.car-check input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--blue); flex: none; }
+.car-check svg { color: var(--police); flex: none; margin-top: 1px; }
+.car-check.is-on { border-color: var(--blue); background: var(--blue-wash); }
+.car-check-title { display: block; font-weight: 600; }
+.car-check-sub { display: block; font-size: 0.82rem; color: var(--muted); }
+.car-tag {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 0.72rem; font-weight: 700; line-height: 1; padding: 3px 7px; border-radius: 999px;
+  background: var(--police); color: #fff;
+}
+.car-mark { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--police); color: #fff; flex: none; }
 .role-note.is-cert { background: var(--blue-wash); color: var(--police); font-weight: 500; }
 .info-note { margin: 10px 0 0; padding: 10px 12px; border-radius: var(--radius-s); background: var(--blue-wash); color: var(--ink-2); font-size: 0.9rem; }
 

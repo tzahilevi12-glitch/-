@@ -3,7 +3,6 @@ import { ApiError, rejectionToError } from '../lib/errors.ts';
 import { hhmmToTime, nowInStation, toIsoDate } from '../lib/dates.ts';
 import {
   absoluteMinute,
-  bypassesCapacity,
   computeStaffing,
   decideRegistration,
   formatHHMM,
@@ -40,14 +39,14 @@ export async function rebalanceShift(tx: Tx, shiftId: string): Promise<Staffing>
   let counts = loaded.counts;
 
   if (shift.status !== 'COMPLETED') {
-    let waitlist: Array<{ id: string; createdAt: Date; hasDrivingChip: boolean; certification: Certification }> = active
+    let waitlist: Array<{ id: string; createdAt: Date; hasDrivingChip: boolean; opensNewCar: boolean }> = active
       .filter((r) => r.status === 'PENDING' && r.user.isActive)
-      .map((r) => ({ id: r.id, createdAt: r.createdAt, hasDrivingChip: r.user.hasDrivingChip, certification: r.user.certification as Certification }));
+      .map((r) => ({ id: r.id, createdAt: r.createdAt, hasDrivingChip: r.user.hasDrivingChip, opensNewCar: r.opensNewCar }));
     for (let next = pickPromotion(shift, counts, waitlist); next; next = pickPromotion(shift, counts, waitlist)) {
       const picked = next;
       await tx.shiftRegistration.update({ where: { id: picked.id }, data: { status: 'APPROVED' } });
       waitlist = waitlist.filter((w) => w.id !== picked.id);
-      const extra = bypassesCapacity(picked.certification);
+      const extra = picked.opensNewCar;
       counts = {
         approvedTotal: counts.approvedTotal + (extra ? 0 : 1),
         approvedDrivers: counts.approvedDrivers + (picked.hasDrivingChip ? 1 : 0),
@@ -79,6 +78,8 @@ async function otherShiftDates(tx: Tx, userId: string, date: Date, excludeRegist
 export interface RequestedHours {
   startTime?: string;
   endTime?: string;
+  /** Level B/C: "מעוניין לפתוח ניידת" — opens an additional patrol car (outside maxVolunteers). */
+  opensNewCar?: boolean;
 }
 
 /**
@@ -109,7 +110,7 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
 
     const status = decision.outcome === 'APPROVED' ? 'APPROVED' : 'PENDING';
     const o = overridesFor(window, decision.interval);
-    const data = { status, startTime: toTime(o.startTime), endTime: toTime(o.endTime) } as const;
+    const data = { status, startTime: toTime(o.startTime), endTime: toTime(o.endTime), opensNewCar: hours.opensNewCar === true } as const;
     const registration = existing
       ? await tx.shiftRegistration.update({ where: { id: existing.id }, data: { ...data, createdAt: new Date() } })
       : await tx.shiftRegistration.create({ data: { ...data, shiftId, userId } });
@@ -123,7 +124,9 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
       message:
         decision.outcome === 'WAITLISTED'
           ? `נרשמת לרשימת ההמתנה למשמרת, בשעות ${range}. תשובץ/י אוטומטית כשיתפנה מקום, או כשמזין המשמרות יאשר.`
-          : `נרשמת למשמרת, בשעות ${range}.`,
+          : hours.opensNewCar
+            ? `נרשמת למשמרת עם ניידת נוספת, בשעות ${range}.`
+            : `נרשמת למשמרת, בשעות ${range}.`,
       staffing,
     };
   });
@@ -185,13 +188,13 @@ export async function cancelRegistration(params: { shiftId: string; userId: stri
 /** Commander approves a waitlisted volunteer, overriding the driver reservation (capacity still applies). */
 export async function adminApproveRegistration(registrationId: string) {
   return withSerializableTx(async (tx) => {
-    const reg = await tx.shiftRegistration.findUnique({ where: { id: registrationId }, include: { user: { select: { certification: true } } } });
+    const reg = await tx.shiftRegistration.findUnique({ where: { id: registrationId } });
     if (!reg) throw new ApiError(404, 'REGISTRATION_NOT_FOUND', 'ההרשמה לא נמצאה.');
     if (reg.status !== 'PENDING') throw new ApiError(409, 'NOT_PENDING', 'ההרשמה הזו לא ממתינה לאישור.');
     const loaded = await loadShift(tx, reg.shiftId);
     if (!loaded) throw new ApiError(404, 'SHIFT_NOT_FOUND', 'המשמרת לא נמצאה.');
     if (loaded.shift.status === 'COMPLETED') throw new ApiError(409, 'SHIFT_NOT_OPEN', 'המשמרת סגורה.');
-    if (!bypassesCapacity(reg.user.certification as Certification) && loaded.counts.approvedTotal >= loaded.shift.maxVolunteers) {
+    if (!reg.opensNewCar && loaded.counts.approvedTotal >= loaded.shift.maxVolunteers) {
       throw new ApiError(409, 'SHIFT_FULL', 'המשמרת מלאה. יש להגדיל את מספר המתנדבים או להסיר מישהו קודם.');
     }
     const registration = await tx.shiftRegistration.update({ where: { id: reg.id }, data: { status: 'APPROVED' } });

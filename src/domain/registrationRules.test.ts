@@ -137,46 +137,56 @@ test('weeks start on Sunday; recurrence', () => {
   assert.equal(expandRecurrence('2026-11-08', '2026-11-21', [0, 1, 2, 3, 4]).length, 10);
 });
 
-// ── Level B / Level C ──
+// ── Level B / Level C: opening an additional patrol car ──
 
-test('Level B/C join a FULL shift (bypass maxVolunteers)', () => {
+const levelC = { isActive: true, hasDrivingChip: false, certification: 'LEVEL_C' as const };
+const levelB = { isActive: true, hasDrivingChip: false, certification: 'LEVEL_B' as const };
+
+test('Level B/C who OPEN a patrol car join a FULL shift (bypass maxVolunteers)', () => {
   const counts = { approvedTotal: 3, approvedDrivers: 1 };
-  assert.equal(code(decideRegistration(ctx({ counts }))), 'SHIFT_FULL');
-  for (const certification of ['LEVEL_B', 'LEVEL_C'] as const) {
-    assert.equal(code(decideRegistration(ctx({ counts, user: { isActive: true, hasDrivingChip: false, certification } }))), 'APPROVED');
+  for (const user of [levelB, levelC]) {
+    assert.equal(code(decideRegistration(ctx({ counts, user, requested: { opensNewCar: true } }))), 'APPROVED');
   }
 });
 
-test('Level B/C skip the driver reservation (never waitlisted)', () => {
-  const counts = { approvedTotal: 2, approvedDrivers: 0 };
-  assert.equal(code(decideRegistration(ctx({ counts, user: { isActive: true, hasDrivingChip: false, certification: 'LEVEL_B' } }))), 'APPROVED');
+test('Level B/C who do NOT open a car count toward capacity like everyone else', () => {
+  assert.equal(code(decideRegistration(ctx({ counts: { approvedTotal: 3, approvedDrivers: 1 }, user: levelC }))), 'SHIFT_FULL');
+  assert.equal(code(decideRegistration(ctx({ counts: { approvedTotal: 2, approvedDrivers: 0 }, user: levelB }))), 'WAITLISTED');
+  assert.equal(code(decideRegistration(ctx({ user: levelC }))), 'APPROVED');
 });
 
-test('Level B/C still follow the other rules', () => {
-  const user = { isActive: true, hasDrivingChip: false, certification: 'LEVEL_C' as const };
-  assert.equal(code(decideRegistration(ctx({ user, otherShiftDates: ['2026-11-10'] }))), 'ONE_SHIFT_PER_DAY');
-  assert.equal(code(decideRegistration(ctx({ user, shift: { ...evening, published: false } }))), 'NOT_PUBLISHED');
-  assert.equal(code(decideRegistration(ctx({ user, shift: { ...evening, status: 'COMPLETED' } }))), 'SHIFT_NOT_OPEN');
-  assert.equal(code(decideRegistration(ctx({ user, existingStatusOnShift: 'APPROVED' }))), 'ALREADY_REGISTERED');
-  assert.equal(code(decideRegistration(ctx({ user: { ...user, isActive: false } }))), 'USER_INACTIVE');
+test('opening a car skips the driver reservation', () => {
+  assert.equal(code(decideRegistration(ctx({ counts: { approvedTotal: 2, approvedDrivers: 0 }, user: levelB, requested: { opensNewCar: true } }))), 'APPROVED');
 });
 
-test('NONE certification behaves like before', () => {
-  assert.equal(code(decideRegistration(ctx({ counts: { approvedTotal: 3, approvedDrivers: 1 }, user: { isActive: true, hasDrivingChip: true, certification: 'NONE' } }))), 'SHIFT_FULL');
+test('only Level B/C may open a car', () => {
+  for (const certification of ['NONE', 'LEVEL_A'] as const) {
+    const user = { isActive: true, hasDrivingChip: true, certification };
+    assert.equal(code(decideRegistration(ctx({ user, requested: { opensNewCar: true } }))), 'NOT_QUALIFIED_FOR_CAR');
+  }
 });
 
-test('waitlisted Level B/C volunteer is promoted even when the shift is full', () => {
+test('opening a car still follows the other rules', () => {
+  const requested = { opensNewCar: true };
+  assert.equal(code(decideRegistration(ctx({ user: levelC, requested, otherShiftDates: ['2026-11-10'] }))), 'ONE_SHIFT_PER_DAY');
+  assert.equal(code(decideRegistration(ctx({ user: levelC, requested, shift: { ...evening, published: false } }))), 'NOT_PUBLISHED');
+  assert.equal(code(decideRegistration(ctx({ user: levelC, requested, shift: { ...evening, status: 'COMPLETED' } }))), 'SHIFT_NOT_OPEN');
+  assert.equal(code(decideRegistration(ctx({ user: levelC, requested, existingStatusOnShift: 'APPROVED' }))), 'ALREADY_REGISTERED');
+  assert.equal(code(decideRegistration(ctx({ user: { ...levelC, isActive: false }, requested }))), 'USER_INACTIVE');
+});
+
+test('a waitlisted registration that opens a car is promoted even when the shift is full', () => {
   const a = { name: 'a', hasDrivingChip: false, createdAt: new Date(1) };
-  const c = { name: 'c', hasDrivingChip: false, createdAt: new Date(5), certification: 'LEVEL_C' as const };
+  const c = { name: 'c', hasDrivingChip: false, createdAt: new Date(5), opensNewCar: true };
   assert.equal(pickPromotion(evening, { approvedTotal: 3, approvedDrivers: 1 }, [a, c])?.name, 'c');
 });
 
-test('extra Level B/C volunteers do not block editing the shift', () => {
+test('registrations that open a car do not block editing the shift', () => {
   const regs = [
     { status: 'APPROVED' as const, startTime: null, endTime: null },
     { status: 'APPROVED' as const, startTime: null, endTime: null },
     { status: 'APPROVED' as const, startTime: null, endTime: null },
-    { status: 'APPROVED' as const, startTime: null, endTime: null, certification: 'LEVEL_B' as const },
+    { status: 'APPROVED' as const, startTime: null, endTime: null, opensNewCar: true },
   ];
   assert.equal(checkShiftChange({ ...evening, maxVolunteers: 3 }, regs).ok, true);
   assert.equal(checkShiftChange({ ...evening, maxVolunteers: 2 }, regs).ok, false);
