@@ -46,7 +46,8 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 
 | Rule | Behaviour |
 |---|---|
-| Sign-up | Open: name, driving-chip status and qualification (none / Level B / Level C), no approval. Read from the profile on every booking. |
+| Sign-up | Open: name, driving-chip status and qualification (מתנדב אק״מ / Level B / Level C), no approval. Read from the profile on every booking. |
+| Transparency | The volunteer shift board shows, in small text under each shift, how many are signed up and their names. The commander sees "רשומים X / מבוקש Y" on every shift (X includes Level B/C extras). |
 | Level B / C (מוסמך שלב ב'/ג') | Can open an additional patrol car: they can join **any** shift, even a full one, ignoring `maxVolunteers` and the driver reservation. Their places are extra (shown as "+1" on the roster) and don't use up regular seats. All other rules still apply (published, one shift per day, not ended). |
 | Visibility | Volunteers see only **published** shifts that haven't ended. The commander publishes a week at a time (weeks start Sunday). |
 | Capacity | `maxVolunteers` is the number of regular seats per shift, whatever the hours. With max 2, sign-ups for 16–20 and 18–22 fill it. Level B/C volunteers are extra. |

@@ -67,10 +67,14 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
       <div className="sheet-body">
         <div className="panel-status">
           <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{driverText}</span>
-          <span className="muted">
-            {shift.seatsTaken} מתוך {shift.maxVolunteers} מקומות תפוסים
-            {shift.extraVolunteers > 0 && `, ועוד ${shift.extraVolunteers === 1 ? 'מוסמך אחד' : `${shift.extraVolunteers} מוסמכים`} בניידת נוספת`}
+          <span className="cell-ratio">
+            רשומים <strong>{shift.seatsTaken + shift.extraVolunteers}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
           </span>
+          {shift.extraVolunteers > 0 && (
+            <span className="muted small">
+              (כולל {shift.extraVolunteers === 1 ? 'מוסמך אחד' : `${shift.extraVolunteers} מוסמכים`} בניידת נוספת)
+            </span>
+          )}
           <span className={`pub-tag${shift.published ? '' : ' is-draft'}`}>{shift.published ? 'פורסם' : 'טיוטה'}</span>
           {shift.status === 'COMPLETED' && <span className="pub-tag">הסתיימה</span>}
         </div>

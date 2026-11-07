@@ -1,6 +1,7 @@
-/* Station shifts (Hebrew, RTL): police blue & white.
-   Police blue for headers, buttons and accents; white surfaces; a light-bar blue marks
-   drivers; green/red are kept only for the driver-coverage lamps.
+/* Station shifts (Hebrew, RTL): police red & blue.
+   Police blue for headers and buttons, police red as the accent (light bar under headers,
+   active tabs, markers), white surfaces. A light-bar blue marks drivers; the coverage lamps
+   keep their own green / warning red.
    Logical properties (inline-start/end) throughout so layout follows dir="rtl". */
 
 :root {
@@ -12,6 +13,9 @@
   --line: #d2dcea;
   --police: #0b3d91;       /* police blue: headers */
   --police-deep: #072a66;
+  --police-red: #d7192d;   /* police red: accents */
+  --police-red-press: #b01224;
+  --police-red-wash: #fde8ea;
   --blue: #1257c4;         /* buttons, links, accents */
   --blue-press: #0d47a3;
   --blue-wash: #e3edfc;
@@ -62,7 +66,8 @@ button { font: inherit; color: inherit; }
 .btn-primary:hover:not(:disabled) { background: var(--blue-press); }
 .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
 .btn-ghost:hover:not(:disabled) { border-color: var(--ink-2); }
-.btn-danger { background: var(--red); color: #fff; }
+.btn-danger { background: var(--police-red); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: var(--police-red-press); }
 .btn-block { width: 100%; }
 .btn-sm { min-height: 34px; padding: 0 12px; font-size: 0.875rem; }
 .icon-btn {
@@ -188,7 +193,7 @@ button { font: inherit; color: inherit; }
 .warn-note { margin: 10px 0 0; padding: 10px 12px; border-inline-start: 3px solid var(--driver); background: var(--driver-wash); font-size: 0.9rem; border-start-end-radius: var(--radius-s); border-end-end-radius: var(--radius-s); }
 
 .toast-region { position: fixed; inset-inline: 0; bottom: 24px; z-index: 60; display: flex; justify-content: center; pointer-events: none; padding: 0 16px; }
-.toast { max-width: 480px; padding: 12px 16px; border-radius: var(--radius-m); background: var(--ink); color: #fff; font-weight: 500; box-shadow: 0 8px 24px rgba(22, 35, 58, 0.3); animation: sheet-in 160ms ease-out; }
+.toast { max-width: 480px; padding: 12px 16px; border-radius: var(--radius-m); background: var(--police-deep); color: #fff; font-weight: 500; box-shadow: 0 8px 24px rgba(22, 35, 58, 0.3); animation: sheet-in 160ms ease-out; }
 .toast-error { background: var(--red); }
 
 .empty { padding: 32px 20px; text-align: center; color: var(--ink-2); display: flex; flex-direction: column; gap: 14px; align-items: center; }
@@ -199,7 +204,8 @@ button { font: inherit; color: inherit; }
 
 .enter { min-height: 100vh; display: flex; flex-direction: column; background: var(--surface); }
 .enter-hero { background: var(--police); color: #fff; padding: 40px 22px 28px; }
-.enter-kicker { color: #b8cdf0; font-weight: 500; margin-bottom: 6px; }
+.enter-kicker { display: inline-flex; align-items: center; gap: 8px; color: #dbe6f8; font-weight: 500; margin-bottom: 6px; }
+.enter-kicker::before { content: ''; width: 10px; height: 10px; border-radius: 2px; background: var(--police-red); box-shadow: 14px 0 0 #2f7cf0; margin-inline-end: 14px; }
 .enter-hero h1 { font-size: clamp(1.9rem, 7vw, 2.6rem); line-height: 1.1; font-weight: 700; max-width: 14ch; letter-spacing: -0.01em; }
 .daystrip { position: relative; margin-top: 28px; }
 .daystrip-row { position: relative; height: 28px; margin-bottom: 6px; }
@@ -246,7 +252,7 @@ button { font: inherit; color: inherit; }
   font-size: 0.7rem; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 999px;
   background: var(--blue-wash); color: var(--police);
 }
-.extra-tag { margin-inline-start: 4px; font-size: 0.75rem; font-weight: 700; color: var(--blue); background: var(--blue-wash); padding: 1px 6px; border-radius: 999px; }
+.extra-tag { white-space: nowrap; font-size: 0.72rem; font-weight: 700; color: var(--blue); background: var(--blue-wash); padding: 1px 6px; border-radius: 999px; }
 .segmented-3 { grid-auto-columns: 1fr; }
 .segmented-3 button { font-size: 0.85rem; padding: 0 4px; }
 .input-sm { min-height: 34px; width: auto; padding: 0 8px; font-size: 0.875rem; }
@@ -254,14 +260,15 @@ button { font: inherit; color: inherit; }
 .info-note { margin: 10px 0 0; padding: 10px 12px; border-radius: var(--radius-s); background: var(--blue-wash); color: var(--ink-2); font-size: 0.9rem; }
 
 /* blue-and-white checkered band, as on police vehicles */
+/* red & blue light bar, as on a police car roof (RTL: blue on the right, red on the left) */
 .police-band {
-  height: 12px;
-  background: conic-gradient(var(--police) 25%, #fff 0 50%, var(--police) 0 75%, #fff 0) 0 0 / 12px 12px;
+  height: 8px;
+  background: linear-gradient(90deg, var(--police-red) 0 49.6%, #fff 49.6% 50.4%, #2f7cf0 50.4% 100%);
 }
 .site-head, .cmd-bar { position: relative; }
 .site-head::after, .cmd-bar::after {
-  content: ''; position: absolute; inset-inline: 0; bottom: -8px; height: 8px;
-  background: conic-gradient(var(--police) 25%, #fff 0 50%, var(--police) 0 75%, #fff 0) 0 0 / 8px 8px;
+  content: ''; position: absolute; inset-inline: 0; bottom: -6px; height: 6px;
+  background: linear-gradient(90deg, var(--police-red) 0 49.6%, #fff 49.6% 50.4%, #2f7cf0 50.4% 100%);
 }
 .site-main, .cmd > main { padding-top: 8px; }
 
@@ -271,7 +278,7 @@ button { font: inherit; color: inherit; }
   .enter { flex-direction: row; }
   .enter-hero { flex: 1.1; display: flex; flex-direction: column; justify-content: center; padding: 64px; }
   .enter-form { flex: 1; align-self: center; padding: 48px; }
-  .enter .police-band { width: 12px; height: auto; align-self: stretch; }
+  .enter .police-band { width: 8px; height: auto; align-self: stretch; background: linear-gradient(180deg, #2f7cf0 0 49.6%, #fff 49.6% 50.4%, var(--police-red) 50.4% 100%); }
 }
 
 /* ───────── volunteer site (website layout: header navigation, no app tab bar) ───────── */
@@ -289,7 +296,7 @@ button { font: inherit; color: inherit; }
   padding: 18px 12px 15px; border-bottom: 3px solid transparent;
 }
 .site-nav a:hover { color: #fff; }
-.site-nav a.is-on { color: #fff; border-bottom-color: #fff; }
+.site-nav a.is-on { color: #fff; border-bottom-color: var(--police-red); }
 .site-who { display: inline-flex; align-items: center; gap: 6px; color: #e3ecfa; text-decoration: none; font-size: 0.9rem; }
 .site-who svg { color: #9cc9ff; }
 .site-who .cert-mark { background: rgba(255, 255, 255, 0.16); color: #fff; }
@@ -302,7 +309,8 @@ button { font: inherit; color: inherit; }
 }
 
 .page { padding: 22px 16px 24px; }
-.page-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+.page-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.page-title::before { content: ''; width: 6px; height: 1.1em; border-radius: 3px; background: var(--police-red); }
 .page-sub { color: var(--muted); margin: 4px 0 18px; }
 .panel { background: var(--surface); border-radius: var(--radius-l); padding: 18px; }
 .signout { margin-top: 18px; }
@@ -336,6 +344,8 @@ button { font: inherit; color: inherit; }
 .shift-name { font-weight: 600; font-size: 1.05rem; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .shift-hours { font-weight: 400; color: var(--ink-2); font-size: 0.95rem; }
 .shift-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+/* volunteer board: who's already on the shift — small and quiet */
+.shift-people { margin-top: 6px; font-size: 0.78rem; line-height: 1.35; color: var(--muted); }
 .shift-action { flex: none; text-align: end; max-width: 48%; }
 .shift-action .btn { white-space: nowrap; padding: 0 14px; }
 .mine-tag { font-size: 0.85rem; font-weight: 600; color: var(--blue); }
@@ -356,11 +366,11 @@ button { font: inherit; color: inherit; }
 .cmd-bar { display: flex; align-items: center; gap: 24px; padding: 0 24px; background: var(--police); color: #fff; min-height: 56px; flex-wrap: wrap; }
 .cmd-tabs { display: flex; gap: 4px; flex: 1; }
 .cmd-tabs a { color: #c9d8f2; text-decoration: none; padding: 18px 12px 15px; font-weight: 500; border-bottom: 3px solid transparent; }
-.cmd-tabs a.is-on { color: #fff; border-bottom-color: #fff; }
+.cmd-tabs a.is-on { color: #fff; border-bottom-color: var(--police-red); }
 .cmd-who { display: flex; gap: 14px; align-items: center; font-size: 0.9rem; color: #e3ecfa; }
 .cmd-page { padding: 24px; max-width: 1440px; margin: 0 auto; }
 .cmd-login { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--police); }
-.cmd-login-card { width: 100%; max-width: 400px; }
+.cmd-login-card { width: 100%; max-width: 400px; border-top: 5px solid var(--police-red); }
 .cmd-login-card h1 { font-size: 1.5rem; margin-bottom: 4px; }
 .cmd-login-card > p { margin-bottom: 20px; }
 
@@ -400,7 +410,11 @@ button { font: inherit; color: inherit; }
 .cell.is-draft { background: repeating-linear-gradient(135deg, var(--surface) 0 10px, #f6f8fb 10px 20px); outline: 1.5px dashed var(--line); outline-offset: -1.5px; }
 .cell.is-done { opacity: 0.6; }
 .cell-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-.cell-seats { font-weight: 700; font-size: 0.95rem; }
+/* commander: registered vs requested */
+.cell-ratio { font-size: 0.82rem; color: var(--ink-2); white-space: nowrap; }
+.cell-ratio strong { font-size: 1rem; color: var(--ink); }
+.cell-ratio.is-full strong:first-of-type { color: var(--blue); }
+.panel-status .cell-ratio { font-size: 0.95rem; }
 .cell-names { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .cell-name { display: flex; align-items: center; gap: 0 5px; font-size: 0.875rem; min-width: 0; flex-wrap: wrap; }
 .cell-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

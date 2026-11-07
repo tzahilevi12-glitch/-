@@ -18,6 +18,8 @@ const hours = (f: { start: string; end: string }) => ({ startTime: f.start, endT
  * Published OPEN shifts that haven't ended, with a badge (DRIVER_NEEDED / OPEN_FOR_ALL),
  * seats left, and whether the caller already has a shift that day.
  * Level B/C volunteers also see FULL shifts, since they can join any shift.
+ * For transparency each shift also lists who is already on it (registeredNames, in
+ * sign-up order) and how many (registeredCount, Level B/C included).
  */
 shiftsRouter.get('/', async (req, res) => {
   const now = nowInStation();
@@ -32,7 +34,8 @@ shiftsRouter.get('/', async (req, res) => {
       include: {
         registrations: {
           where: { status: { in: ['APPROVED', 'PENDING'] } },
-          include: { user: { select: { hasDrivingChip: true, certification: true } } },
+          orderBy: { createdAt: 'asc' },
+          include: { user: { select: { hasDrivingChip: true, certification: true, fullName: true } } },
         },
       },
     }),
@@ -48,6 +51,7 @@ shiftsRouter.get('/', async (req, res) => {
       .filter((s) => absoluteMinute(toIsoDate(s.date), windowOf(s).end) > nowAbs)
       .map(({ registrations, ...shift }) => {
         const own = registrations.find((r) => r.userId === userId);
+        const onShift = registrations.filter((r) => r.status === 'APPROVED');
         return {
           ...shiftHeader(shift),
           ...staffingView(computeStaffing(shift, countSeats(registrations))),
@@ -55,6 +59,8 @@ shiftsRouter.get('/', async (req, res) => {
             ? { id: own.id, status: own.status, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
             : null,
           iHaveShiftThatDay: myDates.has(toIsoDate(shift.date)),
+          registeredCount: onShift.length,
+          registeredNames: onShift.map((r) => r.user.fullName),
         };
       }),
   });

@@ -5,6 +5,9 @@ import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '
 import { LoadState, ShiftBadge, useLoad } from '../ui.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
+/** First-strong isolate: a name in Latin or Hebrew letters keeps the line's punctuation in place. */
+const isolate = (name: string) => `\u2068${name}\u2069`;
+
 function dayHeading(iso: string): string {
   const today = todayLocal();
   if (iso === today) return `היום, ${dayLabel(iso)}`;
@@ -56,6 +59,11 @@ export function ShiftBoard({ isDriver, certification }: { isDriver: boolean; cer
                         {s.seatsLeft > 0 ? `נותרו ${s.seatsLeft} מתוך ${s.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
                       </span>
                     </div>
+                    <p className="shift-people">
+                      {s.registeredCount === 0
+                        ? 'עדיין אין רשומים'
+                        : `${s.registeredCount === 1 ? 'רשום אחד' : `${s.registeredCount} רשומים`}: ${s.registeredNames.map(isolate).join(', ')}`}
+                    </p>
                   </div>
                   <div className="shift-action">
                     {mine ? (

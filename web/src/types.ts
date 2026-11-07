@@ -37,6 +37,9 @@ interface ShiftBase {
 export interface BoardShift extends ShiftBase {
   myRegistration: { id: string; status: 'APPROVED' | 'PENDING'; startTime: string; endTime: string } | null;
   iHaveShiftThatDay: boolean;
+  /** Everyone on the shift (Level B/C included), in sign-up order. */
+  registeredCount: number;
+  registeredNames: string[];
 }
 
 export interface MyShift {

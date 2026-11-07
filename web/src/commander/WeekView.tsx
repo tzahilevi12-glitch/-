@@ -13,18 +13,23 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
   const shown = shift.approved.slice(0, 4);
   const more = shift.approved.length - shown.length;
   const green = shift.driverAlert === 'GREEN';
+  const registered = shift.seatsTaken + shift.extraVolunteers;
   return (
     <button
       className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}`}
       onClick={onOpen}
-      aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: ${shift.seatsTaken} מתוך ${shift.maxVolunteers}, ${green ? 'יש נהג' : 'אין נהג'}`}
+      aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}`}
     >
+      <span className={`cell-ratio${registered >= shift.maxVolunteers ? ' is-full' : ''}`}>
+        רשומים <strong>{registered}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
+      </span>
       <span className="cell-top">
         <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{green ? 'יש נהג' : 'אין נהג'}</span>
-        <span className="cell-seats">
-          {ltr(`${shift.seatsTaken}/${shift.maxVolunteers}`)}
-          {shift.extraVolunteers > 0 && <span className="extra-tag" title="מוסמכים בניידת נוספת">{ltr(`+${shift.extraVolunteers}`)}</span>}
-        </span>
+        {shift.extraVolunteers > 0 && (
+          <span className="extra-tag" title="מוסמכי שלב ב'/ג' בניידת נוספת">
+            {ltr(`+${shift.extraVolunteers}`)} ניידת נוספת
+          </span>
+        )}
       </span>
       <span className="cell-names">
         {shown.map((p) => (

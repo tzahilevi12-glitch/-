@@ -32,7 +32,7 @@ function DayStrip() {
 }
 
 const CERT_OPTIONS: Array<{ value: Certification; title: string; sub: string }> = [
-  { value: 'NONE', title: 'ללא הסמכה', sub: 'מתנדב/ת' },
+  { value: 'NONE', title: 'מתנדב אק״מ', sub: 'ללא הסמכת שלב' },
   { value: 'LEVEL_B', title: "מוסמך שלב ב'", sub: 'יכול לפתוח ניידת נוספת' },
   { value: 'LEVEL_C', title: "מוסמך שלב ג'", sub: 'יכול לפתוח ניידת נוספת' },
 ];

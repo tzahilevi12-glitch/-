@@ -4,7 +4,7 @@ import type { Certification, ShiftType } from './types.ts';
 export const SHIFT_LABEL: Record<ShiftType, string> = { MORNING: 'בוקר', EVENING: 'צהריים', NIGHT: 'לילה' };
 export const SHIFT_TYPES: ShiftType[] = ['MORNING', 'EVENING', 'NIGHT'];
 
-export const CERT_LABEL: Record<Certification, string> = { NONE: 'ללא הסמכה', LEVEL_B: "מוסמך שלב ב'", LEVEL_C: "מוסמך שלב ג'" };
+export const CERT_LABEL: Record<Certification, string> = { NONE: 'מתנדב אק״מ', LEVEL_B: "מוסמך שלב ב'", LEVEL_C: "מוסמך שלב ג'" };
 export const CERT_SHORT: Record<Certification, string> = { NONE: '', LEVEL_B: "שלב ב'", LEVEL_C: "שלב ג'" };
 export const CERTIFICATIONS: Certification[] = ['NONE', 'LEVEL_B', 'LEVEL_C'];
 export const isCertified = (c: Certification | undefined) => c === 'LEVEL_B' || c === 'LEVEL_C';
