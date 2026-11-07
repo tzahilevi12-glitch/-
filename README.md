@@ -46,7 +46,8 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 
 | Rule | Behaviour |
 |---|---|
-| Sign-up | Open: name, driving-chip status and qualification (מתנדב אק״מ / Level B / Level C), no approval. Read from the profile on every booking. |
+| Sign-up | Open: name, driving-chip status and qualification (מתנדב אק״מ / Level A / Level B / Level C), no approval. Read from the profile on every booking. The shift sign-up itself doesn't ask about driving: the commander sees who can drive from the chip status chosen at sign-in. Level A follows the normal rules. |
+| Guest (אורח) | "כניסה כאורח" on the sign-in screen opens `#/guest`: a read-only board (published shifts, counts, names) loaded from `GET /api/public/board`. Guests have no sign-in, so the server rejects any sign-up, cancellation or change from them. |
 | Transparency | The volunteer shift board shows, in small text under each shift, how many are signed up and their names. The commander sees "רשומים X / מבוקש Y" on every shift (X includes Level B/C extras). |
 | Level B / C (מוסמך שלב ב'/ג') | Can open an additional patrol car: they can join **any** shift, even a full one, ignoring `maxVolunteers` and the driver reservation. Their places are extra (shown as "+1" on the roster) and don't use up regular seats. All other rules still apply (published, one shift per day, not ended). |
 | Visibility | Volunteers see only **published** shifts that haven't ended. The commander publishes a week at a time (weeks start Sunday). |
@@ -60,7 +61,7 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 
 ## API
 
-Public: `POST /api/public/enter {fullName, hasDrivingChip}`, `POST /api/public/commander {fullName, pin}` → `{token}` (send it as `Authorization: Bearer`).
+Public: `GET /api/public/board` (read-only, for guests), `POST /api/public/enter {fullName, hasDrivingChip, certification}`, `POST /api/public/commander {fullName, pin}` → `{token}` (send it as `Authorization: Bearer`).
 
 Volunteer: `GET/PATCH /api/me`, `POST /api/me/logout`, `GET /api/me/shifts`, `GET /api/me/notifications`, `POST /api/me/notifications/seen`, `GET /api/shifts`, `POST /api/shifts/:id/registrations {startTime?, endTime?}`, `DELETE /api/shifts/:id/registrations/me` (always creates a dashboard alert for the scheduler).
 

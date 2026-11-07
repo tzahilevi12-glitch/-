@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, isIsoDate, todayInStation } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum } from '../lib/validate.ts';
-import { addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
+import { CERTIFICATIONS, addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
 import { acknowledgeAlerts, adminApproveRegistration, cancelRegistration, openAlerts } from '../services/registrationService.ts';
 import {
   createRecurringShifts,
@@ -195,7 +195,7 @@ adminRouter.patch('/users/:id', async (req, res) => {
   res.json(
     await adminUpdateUser(req.user!.id, req.params.id, {
       hasDrivingChip: optBool(b, 'hasDrivingChip'),
-      certification: optEnum(b, 'certification', ['NONE', 'LEVEL_B', 'LEVEL_C'] as const),
+      certification: optEnum(b, 'certification', CERTIFICATIONS),
       isActive: optBool(b, 'isActive'),
       fullName: optString(b, 'fullName', 80),
     }),

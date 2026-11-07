@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification } from '../types.ts';
 import { CERT_LABEL, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified, range, timeOptions, windowOf } from '../format.ts';
-import { DutyBar, Sheet, ShiftBadge, ShieldIcon, WheelIcon, toast } from '../ui.tsx';
+import { DutyBar, Sheet, ShiftBadge, ShieldIcon, toast } from '../ui.tsx';
 
 export function SignUpSheet({
   shift,
@@ -96,15 +96,6 @@ export function SignUpSheet({
         />
         <p className="muted small">{valid ? durationLabel(startTime, endTime) : 'שעת הסיום צריכה להיות אחרי שעת ההתחלה.'}</p>
 
-        <p className={`role-note${isDriver ? ' is-driver' : ''}`}>
-          {isDriver ? (
-            <>
-              <WheelIcon size={16} /> ההרשמה היא כנהג.
-            </>
-          ) : (
-            "ההרשמה היא ללא צ'יפ נהיגה. אם זה לא נכון, אפשר לעדכן בפרופיל."
-          )}
-        </p>
         {certified && (
           <p className="role-note is-cert">
             <ShieldIcon size={16} /> {CERT_LABEL[certification]}: אפשר להירשם לכל משמרת, גם כשהיא מלאה (ניידת נוספת).

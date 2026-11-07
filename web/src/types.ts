@@ -2,7 +2,7 @@ export type Role = 'VOLUNTEER' | 'ADMIN';
 export type ShiftType = 'MORNING' | 'EVENING' | 'NIGHT';
 export type Badge = 'DRIVER_NEEDED' | 'OPEN_FOR_ALL' | 'FULL';
 /** Level B / Level C volunteers can open an additional patrol car: they may join full shifts. */
-export type Certification = 'NONE' | 'LEVEL_B' | 'LEVEL_C';
+export type Certification = 'NONE' | 'LEVEL_A' | 'LEVEL_B' | 'LEVEL_C';
 
 export interface Me {
   id: string;
@@ -32,6 +32,12 @@ interface ShiftBase {
   seatsLeft: number;
   driversMissing: number;
   driverOnly: boolean;
+}
+
+/** What a guest sees: shifts, staffing, counts and names — nothing personal, no actions. */
+export interface GuestShift extends ShiftBase {
+  registeredCount: number;
+  registeredNames: string[];
 }
 
 export interface BoardShift extends ShiftBase {

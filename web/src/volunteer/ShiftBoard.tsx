@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api.ts';
-import type { BoardShift, Certification } from '../types.ts';
+import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
 import { LoadState, ShiftBadge, useLoad } from '../ui.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
@@ -15,8 +15,26 @@ function dayHeading(iso: string): string {
   return dayLabel(iso);
 }
 
-export function ShiftBoard({ isDriver, certification }: { isDriver: boolean; certification: Certification }) {
-  const { data, error, loading, reload } = useLoad(() => api<{ shifts: BoardShift[] }>('/shifts'));
+/**
+ * The shift board. With readOnly (guest view) it loads the public board and shows
+ * shifts, counts and names only: no sign-up buttons and nothing personal.
+ */
+export function ShiftBoard({
+  isDriver = false,
+  certification = 'NONE',
+  readOnly = false,
+}: {
+  isDriver?: boolean;
+  certification?: Certification;
+  readOnly?: boolean;
+}) {
+  const { data, error, loading, reload } = useLoad(() =>
+    readOnly
+      ? api<{ shifts: GuestShift[] }>('/public/board').then((r) => ({
+          shifts: r.shifts.map((s): BoardShift => ({ ...s, myRegistration: null, iHaveShiftThatDay: false })),
+        }))
+      : api<{ shifts: BoardShift[] }>('/shifts'),
+  );
   const [selected, setSelected] = useState<BoardShift | null>(null);
 
   if (!data) return <LoadState error={loading ? null : error} onRetry={reload} />;
@@ -28,7 +46,9 @@ export function ShiftBoard({ isDriver, certification }: { isDriver: boolean; cer
     <section className="page">
       <h1 className="page-title">לוח משמרות</h1>
       <p className="page-sub">
-        {isCertified(certification)
+        {readOnly
+          ? 'צפייה בלבד: המשמרות שפורסמו ומי רשום לכל משמרת. כדי להירשם צריך להיכנס כמתנדב.'
+          : isCertified(certification)
           ? 'כל המשמרות שפורסמו, כולל מלאות (כמוסמך אפשר לפתוח ניידת נוספת). אפשר להירשם למשמרת אחת ביום.'
           : 'משמרות שפורסמו ויש בהן מקום. אפשר להירשם למשמרת אחת ביום.'}
       </p>
@@ -66,7 +86,7 @@ export function ShiftBoard({ isDriver, certification }: { isDriver: boolean; cer
                     </p>
                   </div>
                   <div className="shift-action">
-                    {mine ? (
+                    {readOnly ? null : mine ? (
                       <span className={`mine-tag${mine.status === 'PENDING' ? ' is-pending' : ''}`}>
                         {mine.status === 'PENDING' ? 'ברשימת המתנה' : `נרשמת: ${range(mine.startTime, mine.endTime)}`}
                       </span>

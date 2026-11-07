@@ -18,10 +18,12 @@ enum Role {
   ADMIN
 }
 
+/// NONE = standard volunteer (מתנדב אק״מ). Level A (שלב א') follows the normal rules.
 /// Level B (שלב ב') / Level C (שלב ג') volunteers may open an additional patrol car:
 /// they can join any shift regardless of maxVolunteers, and don't use up regular seats.
 enum Certification {
   NONE
+  LEVEL_A
   LEVEL_B
   LEVEL_C
 }

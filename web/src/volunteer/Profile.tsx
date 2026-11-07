@@ -65,10 +65,17 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
             <ShieldIcon size={16} />
             הסמכה
           </span>
-          <div className="segmented segmented-3" role="radiogroup" aria-labelledby="cert-label">
+          <div className="cert-row" role="radiogroup" aria-labelledby="cert-label">
             {CERTIFICATIONS.map((c) => (
-              <button key={c} role="radio" aria-checked={certification === c} className={certification === c ? 'is-on' : ''} onClick={() => setCertification(c)}>
-                {CERT_LABEL[c]}
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={certification === c}
+                className={`cert-option cert-option-sm${certification === c ? ' is-selected' : ''}`}
+                onClick={() => setCertification(c)}
+              >
+                <span className="choice-title">{CERT_LABEL[c]}</span>
               </button>
             ))}
           </div>

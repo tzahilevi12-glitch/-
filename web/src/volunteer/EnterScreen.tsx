@@ -33,6 +33,7 @@ function DayStrip() {
 
 const CERT_OPTIONS: Array<{ value: Certification; title: string; sub: string }> = [
   { value: 'NONE', title: 'מתנדב אק״מ', sub: 'ללא הסמכת שלב' },
+  { value: 'LEVEL_A', title: "מוסמך שלב א'", sub: '' },
   { value: 'LEVEL_B', title: "מוסמך שלב ב'", sub: 'יכול לפתוח ניידת נוספת' },
   { value: 'LEVEL_C', title: "מוסמך שלב ג'", sub: 'יכול לפתוח ניידת נוספת' },
 ];
@@ -136,7 +137,7 @@ export function EnterScreen() {
               >
                 {o.value !== 'NONE' && <ShieldIcon size={18} />}
                 <span className="choice-title">{o.title}</span>
-                <span className="choice-sub">{o.sub}</span>
+                {o.sub && <span className="choice-sub">{o.sub}</span>}
               </button>
             ))}
           </div>
@@ -151,6 +152,9 @@ export function EnterScreen() {
         <button className="btn btn-primary btn-block" disabled={busy}>
           {busy ? 'נכנסים…' : 'כניסה'}
         </button>
+        <a className="btn btn-ghost btn-block guest-btn" href="#/guest">
+          כניסה כאורח (צפייה בלבד)
+        </a>
         <a className="enter-commander" href="#/commander">
           כניסת מזין משמרות
         </a>

@@ -5,6 +5,7 @@ import { getSession, isCommanderHash } from './api.ts';
 import { Toaster } from './ui.tsx';
 import { EnterScreen } from './volunteer/EnterScreen.tsx';
 import { VolunteerApp } from './volunteer/VolunteerApp.tsx';
+import { GuestView } from './volunteer/GuestView.tsx';
 import { CommanderLogin } from './commander/CommanderLogin.tsx';
 import { CommanderApp } from './commander/CommanderApp.tsx';
 
@@ -36,6 +37,7 @@ function useSessionVersion() {
 /**
  * Routing:
  *   #/commander, #/commander/volunteers → commander area (its own sign-in)
+ *   #/guest → read-only guest view (no sign-in)
  *   everything else, including "/" and "#/" → volunteer area
  * The base URL never redirects to the commander area.
  */
@@ -48,6 +50,8 @@ function App() {
     if (!session) return <CommanderLogin />;
     return <CommanderApp tab={hash === '#/commander/volunteers' ? 'volunteers' : 'roster'} />;
   }
+
+  if (hash === '#/guest') return <GuestView />;
 
   const session = getSession('volunteer');
   if (!session) return <EnterScreen />;

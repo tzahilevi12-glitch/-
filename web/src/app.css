@@ -237,7 +237,11 @@ button { font: inherit; color: inherit; }
 .field-label-icon svg { color: var(--blue); }
 
 /* Level B / C qualification */
-.cert-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cert-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 560px) { .cert-row { grid-template-columns: 1fr 1fr; } }
+.cert-option-sm { min-height: 48px; }
+.guest-btn { margin-top: 10px; text-decoration: none; }
+.guest-tag { justify-self: start; font-size: 0.8rem; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.16); padding: 4px 10px; border-radius: 999px; }
 .cert-option {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center;
   min-height: 84px; padding: 10px 6px; border-radius: var(--radius-m);
@@ -302,6 +306,7 @@ button { font: inherit; color: inherit; }
 .site-who .cert-mark { background: rgba(255, 255, 255, 0.16); color: #fff; }
 .site-main { max-width: 760px; margin: 0 auto; }
 @media (max-width: 640px) {
+  .site-head-inner .guest-tag { grid-column: 1 / -1; grid-row: 2; margin-bottom: 10px; }
   .site-head-inner { grid-template-columns: 1fr auto; padding: 0 14px; }
   .site-brand { padding: 12px 0 4px; }
   .site-nav { grid-column: 1 / -1; grid-row: 2; overflow-x: auto; margin: 0 -8px; }

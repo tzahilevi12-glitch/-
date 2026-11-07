@@ -181,3 +181,10 @@ test('extra Level B/C volunteers do not block editing the shift', () => {
   assert.equal(checkShiftChange({ ...evening, maxVolunteers: 3 }, regs).ok, true);
   assert.equal(checkShiftChange({ ...evening, maxVolunteers: 2 }, regs).ok, false);
 });
+
+test('Level A follows the normal rules (no capacity bypass)', () => {
+  const user = { isActive: true, hasDrivingChip: false, certification: 'LEVEL_A' as const };
+  assert.equal(code(decideRegistration(ctx({ user, counts: { approvedTotal: 3, approvedDrivers: 1 } }))), 'SHIFT_FULL');
+  assert.equal(code(decideRegistration(ctx({ user, counts: { approvedTotal: 2, approvedDrivers: 0 } }))), 'WAITLISTED');
+  assert.equal(code(decideRegistration(ctx({ user }))), 'APPROVED');
+});

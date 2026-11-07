@@ -12,11 +12,13 @@ export type ShiftStatus = 'OPEN' | 'FILLED' | 'COMPLETED';
 export type RegistrationStatus = 'APPROVED' | 'PENDING' | 'CANCELLED';
 
 /**
- * Volunteer qualification. Level B (שלב ב') and Level C (שלב ג') volunteers may open an
- * additional patrol car, so they can join ANY shift regardless of maxVolunteers, and their
- * places are extra: they never use up the shift's regular seats.
+ * Volunteer qualification: standard volunteer (מתנדב אק״מ), Level A, Level B or Level C.
+ * Only Level B (שלב ב') and Level C (שלב ג') may open an additional patrol car, so they can
+ * join ANY shift regardless of maxVolunteers, and their places are extra: they never use up
+ * the shift's regular seats. Level A follows the normal rules.
  */
-export type Certification = 'NONE' | 'LEVEL_B' | 'LEVEL_C';
+export const CERTIFICATIONS = ['NONE', 'LEVEL_A', 'LEVEL_B', 'LEVEL_C'] as const;
+export type Certification = (typeof CERTIFICATIONS)[number];
 
 export function bypassesCapacity(c: Certification | null | undefined): boolean {
   return c === 'LEVEL_B' || c === 'LEVEL_C';

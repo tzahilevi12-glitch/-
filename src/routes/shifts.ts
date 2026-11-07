@@ -3,10 +3,11 @@ import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optString } from '../lib/validate.ts';
-import { absoluteMinute, addDays, bypassesCapacity, computeStaffing, formatInterval, type Certification } from '../domain/registrationRules.ts';
+import { CERTIFICATIONS, absoluteMinute, addDays, bypassesCapacity, formatInterval, type Certification } from '../domain/registrationRules.ts';
 import { cancelRegistration, registerForShift } from '../services/registrationService.ts';
 import { endSession } from '../services/sessionService.ts';
-import { countSeats, registrationInterval, shiftHeader, staffingView, windowOf } from '../services/shiftState.ts';
+import { registrationInterval, staffingView, windowOf } from '../services/shiftState.ts';
+import { loadBoard } from '../services/boardService.ts';
 import { markAnnouncementsSeen, unseenAnnouncements, updateMyProfile } from '../services/userService.ts';
 
 export const shiftsRouter = Router();
@@ -23,22 +24,11 @@ const hours = (f: { start: string; end: string }) => ({ startTime: f.start, endT
  */
 shiftsRouter.get('/', async (req, res) => {
   const now = nowInStation();
-  const nowAbs = absoluteMinute(now.date, now.minute);
   const userId = req.user!.id;
   const certified = bypassesCapacity(req.user!.certification as Certification);
 
-  const [shifts, mine] = await Promise.all([
-    prisma.shift.findMany({
-      where: { publishedAt: { not: null }, status: certified ? { in: ['OPEN', 'FILLED'] } : 'OPEN', date: { gte: fromIsoDate(addDays(now.date, -1)) } },
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-      include: {
-        registrations: {
-          where: { status: { in: ['APPROVED', 'PENDING'] } },
-          orderBy: { createdAt: 'asc' },
-          include: { user: { select: { hasDrivingChip: true, certification: true, fullName: true } } },
-        },
-      },
-    }),
+  const [board, mine] = await Promise.all([
+    loadBoard(certified),
     prisma.shiftRegistration.findMany({
       where: { userId, status: { in: ['APPROVED', 'PENDING'] }, shift: { date: { gte: fromIsoDate(addDays(now.date, -1)) } } },
       select: { shift: { select: { date: true } } },
@@ -47,22 +37,16 @@ shiftsRouter.get('/', async (req, res) => {
   const myDates = new Set(mine.map((r) => toIsoDate(r.shift.date)));
 
   res.json({
-    shifts: shifts
-      .filter((s) => absoluteMinute(toIsoDate(s.date), windowOf(s).end) > nowAbs)
-      .map(({ registrations, ...shift }) => {
-        const own = registrations.find((r) => r.userId === userId);
-        const onShift = registrations.filter((r) => r.status === 'APPROVED');
-        return {
-          ...shiftHeader(shift),
-          ...staffingView(computeStaffing(shift, countSeats(registrations))),
-          myRegistration: own
-            ? { id: own.id, status: own.status, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
-            : null,
-          iHaveShiftThatDay: myDates.has(toIsoDate(shift.date)),
-          registeredCount: onShift.length,
-          registeredNames: onShift.map((r) => r.user.fullName),
-        };
-      }),
+    shifts: board.map(({ shift, registrations, view }) => {
+      const own = registrations.find((r) => r.userId === userId);
+      return {
+        ...view,
+        myRegistration: own
+          ? { id: own.id, status: own.status, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
+          : null,
+        iHaveShiftThatDay: myDates.has(toIsoDate(shift.date)),
+      };
+    }),
   });
 });
 
@@ -112,7 +96,7 @@ meRouter.patch('/', async (req, res) => {
     await updateMyProfile(req.user!.id, {
       fullName,
       hasDrivingChip: optBool(b, 'hasDrivingChip'),
-      certification: optEnum(b, 'certification', ['NONE', 'LEVEL_B', 'LEVEL_C'] as const),
+      certification: optEnum(b, 'certification', CERTIFICATIONS),
     }),
   );
 });

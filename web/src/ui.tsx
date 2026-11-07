@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
-import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, isCertified, windowOf } from './format.ts';
+import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, windowOf } from './format.ts';
 
 // ───────────── icons ─────────────
 
@@ -24,9 +24,9 @@ export function ShieldIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-/** Small "שלב ב'" / "שלב ג'" tag next to a volunteer's name. */
+/** Small "שלב א'" / "שלב ב'" / "שלב ג'" tag next to a volunteer's name. */
 export function CertMark({ certification }: { certification: Certification }) {
-  if (!isCertified(certification)) return null;
+  if (!certification || certification === 'NONE') return null;
   return (
     <span className="cert-mark" title={CERT_LABEL[certification]}>
       <ShieldIcon size={11} />
