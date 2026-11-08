@@ -13,8 +13,17 @@ import {
   type Certification,
   type ShiftType,
   type Staffing,
+  minutesUntilStart,
+  volunteerCancelMode,
 } from '../domain/registrationRules.ts';
-import { notifySignUp, type SignUpNotice } from '../lib/telegram.ts';
+import {
+  buildCancelRequestMessage,
+  buildQuickCancelMessage,
+  notifyCommanders,
+  notifySignUp,
+  type CancelNotice,
+  type SignUpNotice,
+} from '../lib/telegram.ts';
 import { loadShift, overridesFor, registrationInterval, windowOf } from './shiftState.ts';
 
 const toTime = (hhmm: string | null) => (hhmm ? hhmmToTime(hhmm) : null);
@@ -114,7 +123,14 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
 
     const status = decision.outcome === 'APPROVED' ? 'APPROVED' : 'PENDING';
     const o = overridesFor(window, decision.interval);
-    const data = { status, startTime: toTime(o.startTime), endTime: toTime(o.endTime), opensNewCar: hours.opensNewCar === true } as const;
+    const data = {
+      status,
+      startTime: toTime(o.startTime),
+      endTime: toTime(o.endTime),
+      opensNewCar: hours.opensNewCar === true,
+      cancelRequestedAt: null,
+      cancelRejectedAt: null,
+    } as const;
     const registration = existing
       ? await tx.shiftRegistration.update({ where: { id: existing.id }, data: { ...data, createdAt: new Date() } })
       : await tx.shiftRegistration.create({ data: { ...data, shiftId, userId } });
@@ -154,7 +170,9 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
 
 /**
  * Cancel a registration.
- * - Volunteer: allowed until their hours end. The cancellation ALWAYS creates an alert for
+ * - Volunteer: a confirmed seat can be cancelled freely only while more than 12 hours remain
+ *   before their hours start (waitlist entries any time). Within 12 hours this throws
+ *   CANCEL_NEEDS_APPROVAL and the volunteer must use requestCancellation(). A volunteer cancellation ALWAYS creates an alert for
  *   the shift scheduler in the same transaction, so it cannot happen silently. The scheduler
  *   sees it as a popup in the dashboard until they acknowledge it.
  * - Commander: any time, no alert (they made the change themselves).
@@ -162,7 +180,8 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
  */
 export async function cancelRegistration(params: { shiftId: string; userId: string; actorIsAdmin: boolean }) {
   const { shiftId, userId, actorIsAdmin } = params;
-  return withSerializableTx(async (tx) => {
+  let quick: CancelNotice | null = null; // Telegram note for a free (12+ hours ahead) cancellation
+  const result = await withSerializableTx(async (tx) => {
     const reg = await tx.shiftRegistration.findUnique({
       where: { shiftId_userId: { shiftId, userId } },
       include: { shift: true, user: { select: { fullName: true } } },
@@ -179,9 +198,28 @@ export async function cancelRegistration(params: { shiftId: string; userId: stri
       if (reg.shift.status === 'COMPLETED' || ended) {
         throw new ApiError(409, 'SHIFT_LOCKED', 'המשמרת כבר הסתיימה. לשינוי יש לפנות למזין המשמרות.');
       }
+      if (volunteerCancelMode({ status: reg.status, minutesToStart: minutesUntilStart(date, interval.start, now) }) === 'NEEDS_APPROVAL') {
+        throw new ApiError(
+          409,
+          'CANCEL_NEEDS_APPROVAL',
+          'נותרו 12 שעות או פחות עד תחילת המשמרת, ולכן הביטול דורש אישור של מזין המשמרות. אפשר לשלוח בקשת ביטול.',
+        );
+      }
+      if (reg.status === 'APPROVED') {
+        quick = {
+          fullName: reg.user.fullName,
+          date,
+          shiftType: reg.shift.shiftType as ShiftType,
+          startTime: formatHHMM(interval.start),
+          endTime: formatHHMM(interval.end),
+        };
+      }
     }
 
-    const registration = await tx.shiftRegistration.update({ where: { id: reg.id }, data: { status: 'CANCELLED' } });
+    const registration = await tx.shiftRegistration.update({
+      where: { id: reg.id },
+      data: { status: 'CANCELLED', cancelRequestedAt: null, cancelRejectedAt: null },
+    });
 
     let alertSent = false;
     if (!actorIsAdmin) {
@@ -202,6 +240,121 @@ export async function cancelRegistration(params: { shiftId: string; userId: stri
 
     const staffing = await rebalanceShift(tx, shiftId);
     return { registration, staffing, alertSent };
+  });
+  // The sign-up was announced on Telegram, so a quick undo is announced too.
+  const q = quick as CancelNotice | null;
+  if (q) notifyCommanders(() => buildQuickCancelMessage(q));
+  return result;
+}
+
+/** FREE / NEEDS_APPROVAL for a registration, by the station clock now. */
+export function cancelModeOf(
+  reg: { status: string; startTime: Date | null; endTime: Date | null },
+  shift: Parameters<typeof windowOf>[0] & { date: Date },
+): 'FREE' | 'NEEDS_APPROVAL' {
+  const interval = registrationInterval(windowOf(shift), reg);
+  return volunteerCancelMode({ status: reg.status, minutesToStart: minutesUntilStart(toIsoDate(shift.date), interval.start, nowInStation()) });
+}
+
+/**
+ * Volunteer asks to cancel a confirmed seat 12 hours or less before their hours start.
+ * The seat stays taken (status stays APPROVED) until the commander approves.
+ * If more than 12 hours are in fact still left, the registration is simply cancelled.
+ */
+export async function requestCancellation(params: { shiftId: string; userId: string }) {
+  const { shiftId, userId } = params;
+  const existing = await prisma.shiftRegistration.findUnique({ where: { shiftId_userId: { shiftId, userId } }, include: { shift: true } });
+  if (existing && existing.status !== 'CANCELLED' && cancelModeOf(existing, existing.shift) === 'FREE') {
+    const r = await cancelRegistration({ shiftId, userId, actorIsAdmin: false });
+    return { outcome: 'CANCELLED' as const, ...r };
+  }
+
+  let notice: CancelNotice | null = null;
+  const result = await withSerializableTx(async (tx) => {
+    const reg = await tx.shiftRegistration.findUnique({
+      where: { shiftId_userId: { shiftId, userId } },
+      include: { shift: true, user: { select: { fullName: true } } },
+    });
+    if (!reg || reg.status === 'CANCELLED') throw new ApiError(404, 'NOT_REGISTERED', 'לא נרשמת למשמרת הזו.');
+    if (reg.status !== 'APPROVED') throw new ApiError(409, 'NOT_APPROVED', 'אפשר לצאת מרשימת ההמתנה ישירות, בלי בקשה.');
+    if (reg.cancelRequestedAt) throw new ApiError(409, 'ALREADY_REQUESTED', 'כבר שלחת בקשת ביטול. היא ממתינה לאישור מזין המשמרות.');
+
+    const interval = registrationInterval(windowOf(reg.shift), reg);
+    const date = toIsoDate(reg.shift.date);
+    const now = nowInStation();
+    if (reg.shift.status === 'COMPLETED' || absoluteMinute(date, interval.end) <= absoluteMinute(now.date, now.minute)) {
+      throw new ApiError(409, 'SHIFT_LOCKED', 'המשמרת כבר הסתיימה. לשינוי יש לפנות למזין המשמרות.');
+    }
+
+    const registration = await tx.shiftRegistration.update({
+      where: { id: reg.id },
+      data: { cancelRequestedAt: new Date(), cancelRejectedAt: null },
+    });
+    notice = {
+      fullName: reg.user.fullName,
+      date,
+      shiftType: reg.shift.shiftType as ShiftType,
+      startTime: formatHHMM(interval.start),
+      endTime: formatHHMM(interval.end),
+    };
+    return { registration };
+  });
+  const n = notice as CancelNotice | null;
+  if (n) notifyCommanders(() => buildCancelRequestMessage(n));
+  return { outcome: 'REQUESTED' as const, ...result };
+}
+
+/** Open cancellation requests, oldest first (commander dashboard). */
+export async function openCancelRequests() {
+  const regs = await prisma.shiftRegistration.findMany({
+    where: { status: 'APPROVED', cancelRequestedAt: { not: null } },
+    include: { shift: true, user: { select: { fullName: true, hasDrivingChip: true, certification: true } } },
+    orderBy: { cancelRequestedAt: 'asc' },
+  });
+  return regs.map((r: any) => {
+    const interval = registrationInterval(windowOf(r.shift), r);
+    return {
+      registrationId: r.id as string,
+      shiftId: r.shiftId as string,
+      date: toIsoDate(r.shift.date),
+      shiftType: r.shift.shiftType as ShiftType,
+      startTime: formatHHMM(interval.start),
+      endTime: formatHHMM(interval.end),
+      fullName: r.user.fullName as string,
+      hasDrivingChip: r.user.hasDrivingChip as boolean,
+      certification: r.user.certification as Certification,
+      opensNewCar: r.opensNewCar as boolean,
+      registeredAt: (r.createdAt as Date).toISOString(),
+      requestedAt: (r.cancelRequestedAt as Date).toISOString(),
+    };
+  });
+}
+
+/**
+ * Commander decides on a cancellation request.
+ * - approve: the registration is cancelled, the seat is freed and the waitlist is promoted.
+ * - reject: the volunteer stays registered; they see "בקשת הביטול נדחתה".
+ */
+export async function decideCancelRequest(registrationId: string, approve: boolean) {
+  return withSerializableTx(async (tx) => {
+    const reg = await tx.shiftRegistration.findUnique({ where: { id: registrationId } });
+    if (!reg) throw new ApiError(404, 'REGISTRATION_NOT_FOUND', 'ההרשמה לא נמצאה.');
+    if (reg.status !== 'APPROVED' || !reg.cancelRequestedAt) {
+      throw new ApiError(409, 'NO_CANCEL_REQUEST', 'אין בקשת ביטול פתוחה להרשמה הזו (ייתכן שכבר טופלה).');
+    }
+    if (!approve) {
+      const registration = await tx.shiftRegistration.update({
+        where: { id: reg.id },
+        data: { cancelRequestedAt: null, cancelRejectedAt: new Date() },
+      });
+      return { registration, staffing: null };
+    }
+    const registration = await tx.shiftRegistration.update({
+      where: { id: reg.id },
+      data: { status: 'CANCELLED', cancelRequestedAt: null, cancelRejectedAt: null },
+    });
+    const staffing = await rebalanceShift(tx, reg.shiftId);
+    return { registration, staffing };
   });
 }
 

@@ -293,3 +293,29 @@ export function expandRecurrence(from: string, to: string, daysOfWeek: number[])
 function reject(code: RejectionCode, message: string): RegistrationDecision {
   return { outcome: 'REJECTED', code, message };
 }
+
+// ── Cancellation window ─────────────────────────────────────────────────────
+
+/** A volunteer may cancel freely while MORE than this is left before their hours start. */
+export const FREE_CANCEL_MINUTES = 12 * 60;
+
+/** Minutes from `now` (station time) until the volunteer's own start (minute of the shift's day; may be > 1440). */
+export function minutesUntilStart(date: string, startMinute: number, now: { date: string; minute: number }): number {
+  return absoluteMinute(date, startMinute) - absoluteMinute(now.date, now.minute);
+}
+
+/** Minutes left in which the volunteer can still cancel without approval (0 when the window has closed). */
+export function freeCancelMinutesLeft(minutesToStart: number): number {
+  return Math.max(0, minutesToStart - FREE_CANCEL_MINUTES);
+}
+
+/**
+ * How a volunteer may cancel their own registration.
+ * - FREE: more than 12 hours before their hours start, or a waitlist entry (it holds no seat).
+ * - NEEDS_APPROVAL: a confirmed seat 12 hours or less before the start; the cancel becomes a request
+ *   to the commander and the seat stays taken until approved.
+ */
+export function volunteerCancelMode(reg: { status: string; minutesToStart: number }): 'FREE' | 'NEEDS_APPROVAL' {
+  if (reg.status === 'PENDING') return 'FREE';
+  return reg.minutesToStart > FREE_CANCEL_MINUTES ? 'FREE' : 'NEEDS_APPROVAL';
+}

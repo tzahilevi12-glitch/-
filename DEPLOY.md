@@ -77,6 +77,15 @@ Render notices and redeploys automatically within a few minutes. Your data stays
 - **"כניסת מזין משמרות לא הוגדרה בשרת":** COMMANDER_PIN is missing. Add it under **Environment**.
 - **The site shows an error after 30 days:** the free database expired (see Part 3).
 
+## How cancelling works
+
+- **More than 12 hours before the shift starts**, a volunteer can cancel on their own, and they're removed right away. My shifts shows until when, for example "ביטול חופשי עד יום א׳ 8.11 בשעה 18:00". For partial hours, the 12 hours count from the volunteer's own start time.
+- **12 hours or less before the start**, the button changes to **בקשת ביטול**. The request appears at the top of the commander dashboard (`/#/commander`) under **בקשות ביטול ממתינות לאישורך**, with **אישור ביטול** and **דחייה** buttons. The same buttons appear in the shift's panel, and the volunteer's name gets an hourglass mark in the weekly grid. If Telegram is set up, the group also gets a message.
+- **Until you approve**, the volunteer stays on the shift and their seat counts as taken. Approving frees the seat, and the first person on the waitlist moves in automatically. Rejecting keeps the volunteer on the shift, and they see that the request was rejected.
+- Leaving the **waitlist** is always allowed without approval, because it doesn't hold a seat.
+
+Times follow the station time zone (`STATION_TZ` in Render, Israel time by default). The database updates itself on deploy. Nothing needs to be done by hand.
+
 ## How cancellation alerts work
 
 When a volunteer cancels, the shift scheduler sees a popup the next time they open the dashboard (`/#/commander`). While the dashboard is open, it checks for new cancellations every 30 seconds. The popup stays until someone presses **קראתי**. Cancellations less than 24 hours before the shift are marked in red. There are no text messages and nothing to set up.

@@ -130,3 +130,42 @@ export function notifySignUp(n: SignUpNotice): void {
   }
   void sendTelegram(text);
 }
+
+export interface CancelNotice {
+  fullName: string;
+  date: string;
+  shiftType: ShiftType;
+  startTime: string;
+  endTime: string;
+}
+
+function shiftLine(n: CancelNotice): string {
+  return `⏰ משמרת: ${SHIFT_NAME[n.shiftType]} (${n.startTime}–${n.endTime})`;
+}
+
+/** 12 hours or less before the shift: the volunteer asks to cancel; the seat stays taken until approved. */
+export function buildCancelRequestMessage(n: CancelNotice): string {
+  return [
+    '⚠️ בקשת ביטול משמרת – ממתינה לאישור',
+    '',
+    `👤 מתנדב: ${n.fullName}`,
+    `📅 תאריך: ${hebrewDate(n.date)}`,
+    shiftLine(n),
+    '',
+    'המקום נשאר תפוס עד לאישור. לאישור או דחייה: לוח מזין המשמרות ← בקשות ביטול.',
+  ].join('\n');
+}
+
+/** More than 12 hours before the shift: the volunteer cancelled on their own. */
+export function buildQuickCancelMessage(n: CancelNotice): string {
+  return ['↩️ הרשמה בוטלה (יותר מ-12 שעות לפני המשמרת)', '', `👤 מתנדב: ${n.fullName}`, `📅 תאריך: ${hebrewDate(n.date)}`, shiftLine(n)].join('\n');
+}
+
+/** Fire-and-forget send of a prepared message. Never throws. */
+export function notifyCommanders(build: () => string): void {
+  try {
+    void sendTelegram(build());
+  } catch (err) {
+    console.error(`[telegram] could not build message: ${(err as Error).message}`);
+  }
+}

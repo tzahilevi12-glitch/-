@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { Certification, Volunteer } from '../types.ts';
 import { CERTIFICATIONS, CERT_LABEL } from '../format.ts';
-import { Avatar, LoadState, WheelIcon, toast, useLoad } from '../ui.tsx';
-import { SearchIcon, ShieldIcon, UsersIcon } from '../icons.tsx';
+import { Avatar, CertMark, DriverBadge, LoadState, toast, useLoad } from '../ui.tsx';
+import { CarFrontIcon, SearchIcon, ShieldIcon, UsersIcon } from '../icons.tsx';
 
 export function Volunteers({ refreshKey }: { refreshKey: number }) {
   const [q, setQ] = useState('');
@@ -53,7 +53,7 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
               <th>שם</th>
               <th>
                 <span className="th-icon">
-                  <WheelIcon size={14} /> צ'יפ נהיגה
+                  <CarFrontIcon size={14} /> צ'יפ נהיגה
                 </span>
               </th>
               <th>
@@ -70,8 +70,10 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
               <tr key={v.id} className={v.isActive ? '' : 'is-paused'}>
                 <td>
                   <span className="vol-name">
-                    <Avatar name={v.fullName} driver={v.hasDrivingChip} size="sm" />
+                    <Avatar name={v.fullName} size="sm" />
                     {v.fullName}
+                    <CertMark certification={v.certification} />
+                    {v.hasDrivingChip && <DriverBadge />}
                   </span>
                 </td>
                 <td>
@@ -83,7 +85,7 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
                   >
                     {v.hasDrivingChip ? (
                       <>
-                        <WheelIcon size={14} /> יש צ'יפ
+                        <CarFrontIcon size={14} /> יש צ'יפ
                       </>
                     ) : (
                       "אין צ'יפ"

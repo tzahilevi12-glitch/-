@@ -39,6 +39,12 @@ export async function loadBoard(includeFull: boolean) {
           ...staffingView(computeStaffing(shift, countSeats(registrations))),
           registeredCount: onShift.length,
           registeredNames: onShift.map((r) => r.user.fullName),
+          // Same people with their badges (qualification colour + driving chip) for the roster line.
+          registeredPeople: onShift.map((r) => ({
+            fullName: r.user.fullName,
+            certification: r.user.certification,
+            hasDrivingChip: r.user.hasDrivingChip,
+          })),
         },
       };
     });

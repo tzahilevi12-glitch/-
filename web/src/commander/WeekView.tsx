@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, ltr, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { Avatar, CarIcon, CertMark, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
-import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
@@ -39,12 +39,17 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
       <span className="cell-names">
         {shown.map((p) => (
           <span key={p.registrationId} className="cell-name">
-            <Avatar name={p.fullName} driver={p.hasDrivingChip} size="sm" />
             <span className="cell-name-text">{p.fullName}</span>
-            <CertMark certification={p.certification} />
+            <CertMark certification={p.certification} compact />
+            {p.hasDrivingChip && <DriverBadge compact />}
             {p.opensNewCar && (
               <span className="car-mark" title="פותח ניידת נוספת" aria-label="פותח ניידת נוספת">
                 <CarIcon size={13} />
+              </span>
+            )}
+            {p.cancelRequestedAt && (
+              <span className="req-mark" title="ביקש/ה ביטול – ממתין לאישורך" aria-label="ביקש/ה ביטול">
+                <HourglassIcon size={13} />
               </span>
             )}
             {p.isPartial && <span className="cell-hours">{range(p.startTime, p.endTime)}</span>}
@@ -65,7 +70,7 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
   );
 }
 
-export function WeekView({ refreshKey }: { refreshKey: number }) {
+export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChanged?: () => void }) {
   const [anchor, setAnchor] = useState(() => addDays(todayLocal(), 7)); // the scheduler usually plans next week
   const { data: week, error, loading, reload } = useLoad(() => api<Week>(`/admin/weeks/${anchor}`), [anchor, refreshKey]);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -175,6 +180,8 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
         </span>
       </div>
 
+      <BadgeLegend />
+
       <div className="grid-scroll">
         <div className="roster" role="table" aria-label="לוח שבועי">
           <div className="roster-row roster-days" role="row">
@@ -222,7 +229,7 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
         <span className="pub-tag is-draft">טיוטה</span> לא גלוי למתנדבים
       </p>
 
-      {open && <ShiftPanel shift={open} onClose={() => setOpenId(null)} onChanged={reload} />}
+      {open && <ShiftPanel shift={open} onClose={() => setOpenId(null)} onChanged={onChanged ?? reload} />}
       {adding && (
         <AddShiftsDialog
           weekStart={week.weekStart}

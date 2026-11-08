@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
-import { LoadState, ShiftBadge, useLoad } from '../ui.tsx';
+import { BadgeLegend, CertMark, DriverBadge, LoadState, ShiftBadge, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -53,6 +53,7 @@ export function ShiftBoard({
           ? 'כל המשמרות שפורסמו, כולל מלאות (כמוסמך אפשר לפתוח ניידת נוספת). אפשר להירשם למשמרת אחת ביום.'
           : 'משמרות שפורסמו ויש בהן מקום. אפשר להירשם למשמרת אחת ביום.'}
       </p>
+      {days.size > 0 && <BadgeLegend />}
 
       {days.size === 0 && (
         <div className="empty">
@@ -92,12 +93,29 @@ export function ShiftBoard({
                         {s.seatsLeft > 0 ? `נותרו ${s.seatsLeft} מתוך ${s.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
                       </span>
                     </div>
-                    <p className="shift-people">
+                    <div className="shift-people">
                       <UsersIcon size={13} />
-                      {s.registeredCount === 0
-                        ? 'עדיין אין רשומים'
-                        : `${s.registeredCount === 1 ? 'רשום אחד' : `${s.registeredCount} רשומים`}: ${s.registeredNames.map(isolate).join(', ')}`}
-                    </p>
+                      {s.registeredCount === 0 ? (
+                        'עדיין אין רשומים'
+                      ) : (
+                        <>
+                          <span className="shift-people-count">{s.registeredCount === 1 ? 'רשום אחד:' : `${s.registeredCount} רשומים:`}</span>
+                          {s.registeredPeople ? (
+                            <ul className="people-list">
+                              {s.registeredPeople.map((p, i) => (
+                                <li key={i} className="people-item">
+                                  {p.fullName}
+                                  <CertMark certification={p.certification} />
+                                  {p.hasDrivingChip && <DriverBadge compact />}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            s.registeredNames.map(isolate).join(', ')
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="shift-action">
                     {readOnly ? null : mine ? (

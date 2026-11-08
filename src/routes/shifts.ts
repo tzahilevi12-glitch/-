@@ -4,7 +4,8 @@ import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optString } from '../lib/validate.ts';
 import { CERTIFICATIONS, absoluteMinute, addDays, canOpenPatrolCar, formatInterval, type Certification } from '../domain/registrationRules.ts';
-import { cancelRegistration, registerForShift } from '../services/registrationService.ts';
+import { cancelRegistration, registerForShift, requestCancellation } from '../services/registrationService.ts';
+import { freeCancelMinutesLeft, minutesUntilStart, volunteerCancelMode } from '../domain/registrationRules.ts';
 import { endSession } from '../services/sessionService.ts';
 import { registrationInterval, staffingView, windowOf } from '../services/shiftState.ts';
 import { loadBoard } from '../services/boardService.ts';
@@ -77,6 +78,8 @@ shiftsRouter.post('/:shiftId/registrations', async (req, res) => {
 
 /**
  * DELETE /api/shifts/:shiftId/registrations/me
+ * Free cancellation: more than 12 hours before the volunteer's hours start (or leaving the waitlist).
+ * 12 hours or less → 409 CANCEL_NEEDS_APPROVAL; use the cancel-request route below.
  * Always notifies the shift scheduler with a popup in the dashboard (alertSent: true).
  */
 shiftsRouter.delete('/:shiftId/registrations/me', async (req, res) => {
@@ -86,6 +89,16 @@ shiftsRouter.delete('/:shiftId/registrations/me', async (req, res) => {
     actorIsAdmin: false,
   });
   res.json({ registration: { id: registration.id, status: registration.status }, alertSent, shift: staffingView(staffing) });
+});
+
+/**
+ * POST /api/shifts/:shiftId/registrations/me/cancel-request
+ * 12 hours or less before the start: asks the commander to cancel. The seat stays taken until approved.
+ * → { outcome: "REQUESTED" }   (or { outcome: "CANCELLED" } if more than 12 hours were in fact still left)
+ */
+shiftsRouter.post('/:shiftId/registrations/me/cancel-request', async (req, res) => {
+  const r = await requestCancellation({ shiftId: req.params.shiftId, userId: req.user!.id });
+  res.json({ outcome: r.outcome, registration: { id: r.registration.id, status: r.registration.status } });
 });
 
 export const meRouter = Router();
@@ -143,6 +156,11 @@ meRouter.get('/shifts', async (req, res) => {
         shiftEndTime: formatInterval(window).end,
         ...hours(formatInterval(interval)),
         isPartial: interval.start !== window.start || interval.end !== window.end,
+        // 12-hour rule (by the station clock) and request state
+        cancelMode: volunteerCancelMode({ status: r.status, minutesToStart: minutesUntilStart(toIsoDate(r.shift.date), interval.start, now) }),
+        freeCancelMinutesLeft: freeCancelMinutesLeft(minutesUntilStart(toIsoDate(r.shift.date), interval.start, now)),
+        cancelRequestedAt: r.cancelRequestedAt,
+        cancelRejectedAt: r.cancelRejectedAt,
         endsAt: absoluteMinute(toIsoDate(r.shift.date), interval.end),
       };
     })

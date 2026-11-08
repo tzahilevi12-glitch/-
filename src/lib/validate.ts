@@ -6,6 +6,7 @@ import { parseHHMM } from '../domain/registrationRules.ts';
 type Body = Record<string, unknown>;
 
 const LABEL: Record<string, string> = {
+  decision: 'החלטה',
   fullName: 'שם מלא', pin: 'קוד', startTime: 'שעת התחלה', endTime: 'שעת סיום', date: 'תאריך', from: 'מתאריך', to: 'עד תאריך',
   shiftType: 'סוג משמרת', requiredDrivers: 'נהגים דרושים', maxVolunteers: 'מספר מתנדבים', notes: 'הערה',
   status: 'סטטוס', hasDrivingChip: "צ'יפ נהיגה", certification: 'הסמכה', opensNewCar: 'פתיחת ניידת', isActive: 'סטטוס פעיל',

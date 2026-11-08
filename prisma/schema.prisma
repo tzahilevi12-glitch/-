@@ -114,6 +114,9 @@ model ShiftRegistration {
   // Level B/C volunteer chose "מעוניין לפתוח ניידת": an additional patrol car, outside maxVolunteers.
   opensNewCar Boolean          @default(false)
   createdAt DateTime           @default(now()) // reset on re-registration; waitlist order
+  // Cancelling 12 hours or less before the start needs the commander. Until approved the seat stays taken.
+  cancelRequestedAt DateTime?  // volunteer asked to cancel (pending commander decision)
+  cancelRejectedAt  DateTime?  // the commander rejected the last request
   updatedAt DateTime           @updatedAt
 
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)

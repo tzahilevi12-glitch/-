@@ -245,3 +245,42 @@ export const GridIcon = (p: IconProps) => (
     <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
   </Icon>
 );
+
+/** Hourglass (Lucide "hourglass") — pending cancellation request. */
+export const HourglassIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 22h14" />
+    <path d="M5 2h14" />
+    <path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22" />
+    <path d="M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />
+  </Icon>
+);
+
+/** Timer (Lucide "timer") — free-cancel deadline. */
+export const TimerIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 2h4" />
+    <path d="M12 14l3-3" />
+    <circle cx="12" cy="14" r="8" />
+  </Icon>
+);
+
+/** Send (Lucide "send") — send a cancellation request. */
+export const SendIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14.5 21.7a.5.5 0 0 0 .94-.03l6.5-19a.5.5 0 0 0-.64-.64l-19 6.5a.5.5 0 0 0-.03.94l7.93 3.18a2 2 0 0 1 1.11 1.11z" />
+    <path d="M21.85 2.15 10.9 13.1" />
+  </Icon>
+);
+
+/** Car (Lucide "car-front") — the volunteer has a driving chip. */
+export const CarFrontIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8" />
+    <path d="M7 14h.01" />
+    <path d="M17 14h.01" />
+    <rect width="18" height="8" x="3" y="10" rx="2" />
+    <path d="M5 18v2" />
+    <path d="M19 18v2" />
+  </Icon>
+);

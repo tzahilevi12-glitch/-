@@ -4,7 +4,14 @@ import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, isIsoDate, todayInStation } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum } from '../lib/validate.ts';
 import { CERTIFICATIONS, addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
-import { acknowledgeAlerts, adminApproveRegistration, cancelRegistration, openAlerts } from '../services/registrationService.ts';
+import {
+  acknowledgeAlerts,
+  adminApproveRegistration,
+  cancelRegistration,
+  decideCancelRequest,
+  openAlerts,
+  openCancelRequests,
+} from '../services/registrationService.ts';
 import {
   createRecurringShifts,
   createShift,
@@ -85,6 +92,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
           endTime: f.end,
           isPartial: interval.start !== window.start || interval.end !== window.end,
           signedUpAt: r.createdAt,
+          cancelRequestedAt: r.cancelRequestedAt,
         };
       };
       return {
@@ -115,6 +123,20 @@ adminRouter.patch('/registrations/:id', async (req, res) => {
   if (!reg) throw new ApiError(404, 'REGISTRATION_NOT_FOUND', 'ההרשמה לא נמצאה.');
   const { registration, staffing } = await cancelRegistration({ shiftId: reg.shiftId, userId: reg.userId, actorIsAdmin: true });
   res.json({ registration, shift: staffingView(staffing) });
+});
+
+// ───────────────────────── cancellation requests ─────────────────────────
+
+/** GET /api/admin/cancel-requests — volunteers asking to cancel 12 hours or less before their shift. */
+adminRouter.get('/cancel-requests', async (_req, res) => {
+  res.json({ requests: await openCancelRequests() });
+});
+
+/** POST /api/admin/registrations/:id/cancel-request  { "decision": "APPROVE" | "REJECT" } */
+adminRouter.post('/registrations/:id/cancel-request', async (req, res) => {
+  const decision = reqEnum(asBody(req.body), 'decision', ['APPROVE', 'REJECT'] as const);
+  const { registration, staffing } = await decideCancelRequest(req.params.id, decision === 'APPROVE');
+  res.json({ registration: { id: registration.id, status: registration.status }, shift: staffing ? staffingView(staffing) : null });
 });
 
 // ───────────────────────── scheduler alerts ─────────────────────────

@@ -2,25 +2,27 @@ import { useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
-import { Avatar, CertMark, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
-import { CalendarIcon, CheckIcon, ClockIcon, ShiftTypeIcon, UsersIcon, WheelIcon, XIcon } from '../icons.tsx';
+import { Avatar, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { CalendarIcon, CheckIcon, ClockIcon, HourglassIcon, ShiftTypeIcon, UsersIcon, XIcon } from '../icons.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
   return (
-    <li className="person">
-      <Avatar name={p.fullName} driver={p.hasDrivingChip} />
+    <li className={`person${p.cancelRequestedAt ? ' is-cancel-requested' : ''}`}>
+      <Avatar name={p.fullName} />
       <div className="person-main">
         <span className="person-name">
           {p.fullName}
           <CertMark certification={p.certification} />
+          {p.hasDrivingChip && <DriverBadge />}
           {p.opensNewCar && <NewCarTag certification={p.certification} long />}
-        </span>
-        <span className="person-sub">
-          {p.hasDrivingChip && (
-            <span className="meta-item">
-              <WheelIcon size={13} /> נהג
+          {p.cancelRequestedAt && (
+            <span className="req-tag">
+              <HourglassIcon size={12} />
+              ביקש/ה ביטול
             </span>
           )}
+        </span>
+        <span className="person-sub">
           <span className="meta-item">
             <ClockIcon size={13} />
             {p.isPartial ? range(p.startTime, p.endTime) : 'כל המשמרת'}
@@ -63,6 +65,13 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
 
   const setReg = (id: string, status: 'APPROVED' | 'CANCELLED') =>
     run(() => api(`/admin/registrations/${id}`, { method: 'PATCH', body: { status } }), status === 'APPROVED' ? 'המתנדב אושר.' : 'המתנדב הוסר מהמשמרת.');
+
+  const decideCancel = (id: string, decision: 'APPROVE' | 'REJECT') =>
+    run(
+      () => api(`/admin/registrations/${id}/cancel-request`, { method: 'POST', body: { decision } }),
+      decision === 'APPROVE' ? 'הביטול אושר. המקום התפנה.' : 'בקשת הביטול נדחתה. המתנדב נשאר במשמרת.',
+      true,
+    );
 
   const dirty =
     form.startTime !== shift.startTime ||
@@ -129,10 +138,22 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
                 key={p.registrationId}
                 p={p}
                 actions={
-                  <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setReg(p.registrationId, 'CANCELLED')}>
-                    <XIcon size={14} />
-                    הסרה
-                  </button>
+                  p.cancelRequestedAt ? (
+                    <>
+                      <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => decideCancel(p.registrationId, 'APPROVE')}>
+                        <CheckIcon size={14} />
+                        אישור ביטול
+                      </button>
+                      <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => decideCancel(p.registrationId, 'REJECT')}>
+                        דחייה
+                      </button>
+                    </>
+                  ) : (
+                    <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setReg(p.registrationId, 'CANCELLED')}>
+                      <XIcon size={14} />
+                      הסרה
+                    </button>
+                  )
                 }
               />
             ))}

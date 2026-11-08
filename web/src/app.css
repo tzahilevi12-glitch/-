@@ -585,3 +585,125 @@ button { font: inherit; color: inherit; }
 .alert-item.is-urgent .alert-icon { background: var(--alert); color: #fff; }
 .alert-message { font-weight: 600; }
 .urgent-tag { display: inline-block; font-size: 0.74rem; font-weight: 700; color: #fff; background: var(--alert); padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
+
+/* ── Cancellation window & requests ───────────────────────────────── */
+:root { --amber: #a55a00; --amber-50: #fff4e0; --amber-line: #f3d39b; }
+
+/* volunteer: My shifts */
+.mine-tag.is-requested { color: var(--amber); background: var(--amber-50); border: 1px solid var(--amber-line); padding: 4px 10px; border-radius: 999px; }
+.my-card.is-cancel-requested { border-color: var(--amber-line); }
+.info-note-warn { background: var(--amber-50); color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber-line); }
+.info-note-danger { background: var(--alert-50); color: var(--alert); }
+.grace-timer {
+  display: inline-flex; align-items: center; gap: 6px; margin-inline-end: auto;
+  font-size: 0.85rem; font-weight: 600; color: var(--green);
+  background: var(--green-50); padding: 5px 10px; border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.btn-request { color: var(--amber); border-color: var(--amber-line); }
+.btn-request:hover:not(:disabled) { background: var(--amber-50); }
+
+/* commander: requests panel */
+.cancel-requests {
+  max-width: 1480px; margin: 22px auto 0; padding: 0 24px;
+}
+.cancel-requests-head {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 16px 18px; border: 1px solid var(--amber-line); border-bottom: none;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--amber-50);
+}
+.cancel-requests-head h2 { font-size: 1.05rem; font-weight: 700; color: var(--amber); }
+.cancel-requests-head p { margin-top: 2px; }
+.cancel-requests-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  background: #fff; color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber-line);
+}
+.request-list {
+  list-style: none; margin: 0; padding: 0; background: var(--surface);
+  border: 1px solid var(--amber-line); border-radius: 0 0 var(--r-lg) var(--r-lg); box-shadow: var(--shadow);
+}
+.request-item { display: flex; align-items: center; gap: 12px; padding: 12px 18px; }
+.request-item + .request-item { border-top: 1px solid var(--line); }
+.request-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.request-main .person-sub { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--ink-2); font-size: 0.88rem; }
+.request-actions { display: flex; gap: 8px; flex: none; }
+@media (max-width: 720px) {
+  .cancel-requests { padding: 0 14px; margin-top: 16px; }
+  .request-item { flex-wrap: wrap; }
+  .request-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* commander: marks on the week grid and in the shift panel */
+.req-mark { display: inline-grid; place-items: center; color: var(--amber); }
+.person.is-cancel-requested { background: var(--amber-50); border-radius: var(--r-sm); }
+.req-tag {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600;
+  color: var(--amber); background: #fff; border: 1px solid var(--amber-line); padding: 2px 8px; border-radius: 999px;
+}
+/* the long "awaiting cancel approval" tag gets its own row on phones */
+@media (max-width: 520px) {
+  .my-card.is-cancel-requested .my-card-head { flex-wrap: wrap; }
+  .my-card.is-cancel-requested .my-card-tags { flex-basis: 100%; flex-direction: row; justify-content: flex-start; }
+}
+.grace-timer.is-closed { color: var(--amber); background: var(--amber-50); }
+
+/* ── Qualification & driver badges ─────────────────────────────────
+   blue  = אק״מ / שלב א'   green = שלב ב'   red + gold ring = שלב ג'
+   amber car = driving chip                navy patrol car = opens an extra car */
+:root {
+  --cert-blue: #1550c0;   --cert-blue-50: #e8effc;   --cert-blue-line: #c3d5f7;
+  --cert-green: #12784a;  --cert-green-50: #e3f4ec;  --cert-green-line: #b5e0c9;
+  --cert-red: #b0102a;    --cert-red-50: #fdecee;    --gold: #c99a16;
+  --chip: #8a5300;        --chip-50: #fff3d6;        --chip-line: #f1d38a;
+}
+.cert-badge {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  font-size: 0.72rem; font-weight: 700; line-height: 1; padding: 4px 8px 4px 9px; border-radius: 999px;
+  white-space: nowrap;
+}
+.cert-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.cert-blue { color: var(--cert-blue); background: var(--cert-blue-50); box-shadow: inset 0 0 0 1px var(--cert-blue-line); }
+.cert-green { color: var(--cert-green); background: var(--cert-green-50); box-shadow: inset 0 0 0 1px var(--cert-green-line); }
+.cert-red { color: var(--cert-red); background: var(--cert-red-50); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.cert-red .cert-dot { box-shadow: 0 0 0 2px var(--gold); }
+/* compact = short code in the same coloured pill */
+.cert-badge.is-compact { padding: 3px 6px; gap: 3px; font-size: 0.66rem; }
+.cert-badge.is-compact .cert-dot { width: 6px; height: 6px; }
+
+.driver-badge {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 0.72rem; font-weight: 700; line-height: 1; padding: 3px 8px; border-radius: 999px;
+  color: var(--chip); background: var(--chip-50); box-shadow: inset 0 0 0 1px var(--chip-line);
+}
+.driver-badge.is-compact { padding: 0; width: 20px; height: 20px; justify-content: center; border-radius: 6px; }
+
+/* on the navy header / profile card the badges sit on white */
+.site-who .cert-badge, .profile-card .cert-badge { background: #fff; }
+
+/* legend */
+.badge-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 0 0 16px; padding: 10px 14px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-sm);
+  font-size: 0.8rem;
+}
+.badge-legend-title { font-weight: 700; color: var(--ink-2); margin-inline-end: 2px; }
+
+/* volunteer board: names with badges */
+.shift-people { flex-wrap: wrap; align-items: center; }
+.shift-people-count { font-weight: 600; color: var(--ink-2); }
+.people-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.people-item { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 500; }
+
+/* week grid cell: dot · name · car */
+.cell-name { align-items: center; }
+.cell-name .cert-badge.is-compact { margin-inline-start: 2px; }
+.vol-name { flex-wrap: wrap; }
+/* small badges inside rosters */
+.cell-name .cert-badge, .people-item .cert-badge { font-size: 0.66rem; padding: 3px 6px 3px 7px; gap: 4px; }
+.cell-name .cert-dot, .people-item .cert-dot { width: 6px; height: 6px; }
+.people-item .driver-badge.is-compact { width: 18px; height: 18px; }
+/* names in the week grid are never cut off: they wrap instead */
+.cell-name .cell-name-text { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; }
+.cell-name { align-items: center; row-gap: 2px; padding: 2px 0; }
+.cell-name .cell-name-text { overflow-wrap: normal; word-break: normal; min-width: min-content; flex: 1 1 0; }

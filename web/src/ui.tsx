@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
 import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, windowOf } from './format.ts';
-import { CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, WheelIcon, XIcon } from './icons.tsx';
+import { CarFrontIcon, CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, WheelIcon, XIcon } from './icons.tsx';
 
 // ───────────── icons (see icons.tsx) ─────────────
 
@@ -51,14 +51,64 @@ export function NewCarTag({ certification, long }: { certification?: Certificati
   );
 }
 
-/** Small "שלב א'" / "שלב ב'" / "שלב ג'" tag next to a volunteer's name. */
-export function CertMark({ certification }: { certification: Certification }) {
-  if (!certification || certification === 'NONE') return null;
+/** Colour of each qualification badge: blue = אק״מ / שלב א', green = שלב ב', red/gold = שלב ג'. */
+export const CERT_TONE: Record<Certification, 'blue' | 'green' | 'red'> = {
+  NONE: 'blue',
+  LEVEL_A: 'blue',
+  LEVEL_B: 'green',
+  LEVEL_C: 'red',
+};
+const CERT_BADGE_TEXT: Record<Certification, string> = { NONE: 'אק״מ', LEVEL_A: "שלב א'", LEVEL_B: "שלב ב'", LEVEL_C: "שלב ג'" };
+const CERT_CODE: Record<Certification, string> = { NONE: 'אק״מ', LEVEL_A: "א'", LEVEL_B: "ב'", LEVEL_C: "ג'" };
+
+/**
+ * Colour-coded qualification badge next to a volunteer's name.
+ *   compact: short code (אק״מ / א' / ב' / ג') for tight spaces; the full name stays in the tooltip.
+ */
+export function CertMark({ certification, compact }: { certification: Certification | undefined; compact?: boolean }) {
+  const c: Certification = certification ?? 'NONE';
+  const tone = CERT_TONE[c];
   return (
-    <span className="cert-mark" title={CERT_LABEL[certification]}>
-      <ShieldIcon size={11} />
-      {CERT_SHORT[certification]}
+    <span className={`cert-badge cert-${tone}${compact ? ' is-compact' : ''}`} title={CERT_LABEL[c]} aria-label={CERT_LABEL[c]}>
+      <span className="cert-dot" aria-hidden="true" />
+      {compact ? CERT_CODE[c] : CERT_BADGE_TEXT[c]}
     </span>
+  );
+}
+
+/** Driving-chip badge: the volunteer can drive the patrol car. */
+export function DriverBadge({ compact }: { compact?: boolean }) {
+  return (
+    <span className={`driver-badge${compact ? ' is-compact' : ''}`} title="יש צ'יפ נהיגה" aria-label="יש צ'יפ נהיגה">
+      <CarFrontIcon size={compact ? 12 : 13} strokeWidth={2.4} />
+      {!compact && 'נהג'}
+    </span>
+  );
+}
+
+/** Legend for the badges, shown above rosters. */
+export function BadgeLegend() {
+  return (
+    <div className="badge-legend" aria-label="מקרא">
+      <span className="badge-legend-title">מקרא:</span>
+      <span className="cert-badge cert-blue">
+        <span className="cert-dot" />
+        אק״מ / שלב א'
+      </span>
+      <span className="cert-badge cert-green">
+        <span className="cert-dot" />
+        שלב ב'
+      </span>
+      <span className="cert-badge cert-red">
+        <span className="cert-dot" />
+        שלב ג'
+      </span>
+      <DriverBadge />
+      <span className="car-tag">
+        <CarIcon size={12} />
+        פותח ניידת
+      </span>
+    </div>
   );
 }
 

@@ -12,6 +12,10 @@ import {
   shiftWindow,
   weekStartOf,
   type RegistrationContext,
+  FREE_CANCEL_MINUTES,
+  freeCancelMinutesLeft,
+  minutesUntilStart,
+  volunteerCancelMode,
 } from './registrationRules.ts';
 
 const W = (t: keyof typeof DEFAULT_SHIFT_HOURS) => shiftWindow(DEFAULT_SHIFT_HOURS[t].startTime, DEFAULT_SHIFT_HOURS[t].endTime);
@@ -197,4 +201,25 @@ test('Level A follows the normal rules (no capacity bypass)', () => {
   assert.equal(code(decideRegistration(ctx({ user, counts: { approvedTotal: 3, approvedDrivers: 1 } }))), 'SHIFT_FULL');
   assert.equal(code(decideRegistration(ctx({ user, counts: { approvedTotal: 2, approvedDrivers: 0 } }))), 'WAITLISTED');
   assert.equal(code(decideRegistration(ctx({ user }))), 'APPROVED');
+});
+
+test('cancel window: free while more than 12 hours remain; 12 hours or less needs approval', () => {
+  assert.equal(FREE_CANCEL_MINUTES, 720);
+  const now = { date: '2026-11-08', minute: 10 * 60 }; // Sunday 10:00
+  // Monday morning 06:00 → 20 hours away
+  const mon = minutesUntilStart('2026-11-09', 6 * 60, now);
+  assert.equal(mon, 20 * 60);
+  assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: mon }), 'FREE');
+  assert.equal(freeCancelMinutesLeft(mon), 8 * 60); // free until Sunday 18:00
+  // exactly 12 hours → approval; 12h + 1 minute → free
+  assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: 720 }), 'NEEDS_APPROVAL');
+  assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: 721 }), 'FREE');
+  // tonight 21:30 → 11.5 hours away
+  assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: minutesUntilStart('2026-11-08', 21 * 60 + 30, now) }), 'NEEDS_APPROVAL');
+  // partial night hours after midnight (minute > 1440) count from the real time
+  assert.equal(minutesUntilStart('2026-11-08', 24 * 60 + 60, now), 15 * 60);
+  // already started → approval; waitlist → always free
+  assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: -30 }), 'NEEDS_APPROVAL');
+  assert.equal(volunteerCancelMode({ status: 'PENDING', minutesToStart: 5 }), 'FREE');
+  assert.equal(freeCancelMinutesLeft(100), 0);
 });

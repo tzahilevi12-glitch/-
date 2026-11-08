@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { api, getSession, setSession } from '../api.ts';
 import { CancellationAlerts } from './CancellationAlerts.tsx';
+import { CancelRequests } from './CancelRequests.tsx';
 import { Volunteers } from './Volunteers.tsx';
 import { WeekView } from './WeekView.tsx';
 import { Avatar, Brand } from '../ui.tsx';
@@ -42,7 +43,10 @@ export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
           </button>
         </span>
       </header>
-      <main>{tab === 'roster' ? <WeekView refreshKey={refreshKey} /> : <Volunteers refreshKey={refreshKey} />}</main>
+      <main>
+        <CancelRequests refreshKey={refreshKey} onChanged={onNewAlert} />
+        {tab === 'roster' ? <WeekView refreshKey={refreshKey} onChanged={onNewAlert} /> : <Volunteers refreshKey={refreshKey} />}
+      </main>
       <CancellationAlerts onNew={onNewAlert} />
     </div>
   );
