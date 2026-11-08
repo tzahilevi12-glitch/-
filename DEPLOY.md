@@ -80,3 +80,70 @@ Render notices and redeploys automatically within a few minutes. Your data stays
 ## How cancellation alerts work
 
 When a volunteer cancels, the shift scheduler sees a popup the next time they open the dashboard (`/#/commander`). While the dashboard is open, it checks for new cancellations every 30 seconds. The popup stays until someone presses **קראתי**. Cancellations less than 24 hours before the shift are marked in red. There are no text messages and nothing to set up.
+
+## Telegram notifications (about 10 minutes)
+
+Every time a volunteer signs up for a shift, the bot sends a message to a Telegram group of the commanders. The message looks like this:
+
+```
+🚨 הרשמה חדשה למשמרת!
+
+👤 מתנדב: דנה כהן
+📅 תאריך: יום ראשון, 8.11.2026
+⏰ משמרת: צהריים (14:30–22:00)
+🎓 הסמכה: שלב ב׳
+🔑 צ'יפ נהיגה: יש
+🚓 פתיחת ניידת: כן
+```
+
+The "פתיחת ניידת" line appears only for Level B/C volunteers. Partial hours and waitlist sign-ups are marked in the message.
+
+This is optional and safe. If the two settings below are missing or wrong, or Telegram is down, the volunteer is still signed up normally. The bot just doesn't send anything, and the reason is written in the Render **Logs**.
+
+### Step 1: Create the bot with BotFather
+
+1. In the Telegram app, search for **@BotFather** (it has a blue check mark) and open it.
+2. Press **Start**, then send: `/newbot`
+3. BotFather asks for a **name**. This is what people see. Send, for example: `משמרות מתנדבים`
+4. BotFather asks for a **username**. It must be in English and end with `bot`, for example: `station_shifts_bot`. If it's taken, try another.
+5. BotFather replies with a **token**, a long line like `7412345678:AAHk2x...`. Copy it. This is your **TELEGRAM_BOT_TOKEN**.
+   Keep it secret, because anyone with the token can send messages as your bot. If it leaks, send `/revoke` to BotFather to get a new one.
+
+### Step 2: Create the commanders' group and get its Chat ID
+
+1. In Telegram, create a **New Group** with the 3 commanders, for example "התראות משמרות".
+2. Add the bot to the group: open the group → **Add members** → search for your bot's username (from step 1.4) → add it.
+3. In the group, send this message (with your bot's username): `/start@station_shifts_bot`
+4. On a phone or computer, open this address in a web browser. Paste your token in place of `<TOKEN>`, and keep the word `bot` right before it:
+   `https://api.telegram.org/bot<TOKEN>/getUpdates`
+   Example: `https://api.telegram.org/bot7412345678:AAHk2x.../getUpdates`
+5. The page shows text. Look for `"chat":{"id":` followed by a number. For a group it starts with a minus sign, for example `-1001987654321` or `-987654321`. Copy the whole number, **including the minus**. This is your **TELEGRAM_CHAT_ID**.
+   - If the page only shows `{"ok":true,"result":[]}`, send `/start@your_bot_username` in the group again and refresh the page.
+   - If you see `"migrate_to_chat_id"`, use the number next to it. Telegram changed the group's ID.
+
+Each commander should make sure the group is **not muted** on their phone, so the notification pops up.
+
+> Tip: you can also send to several chats instead of a group. Put the IDs separated by commas, for example `-1001987654321,123456789`. A person's own ID is shown the same way in `getUpdates`, after they send `/start` to the bot privately.
+
+### Step 3: Add the two settings in Render
+
+1. Go to https://dashboard.render.com and open your web service **police-volunteers** (the web service, not the database).
+2. In the left menu, click **Environment**.
+3. Click **Add Environment Variable** (or **+ Add**), and fill in:
+   - Key: `TELEGRAM_BOT_TOKEN`, Value: the token from step 1
+4. Add a second one:
+   - Key: `TELEGRAM_CHAT_ID`, Value: the number from step 2, including the minus
+5. Click **Save** and choose the option that also deploys (**Save, rebuild, and deploy** or **Save and deploy**). Render restarts the site in a minute or two.
+6. Check that it worked: open **Logs** on the service. After the restart you should see the line `Telegram notifications: ON (1 chat)`.
+7. Test it: sign in to the site as a test volunteer, sign up for a shift, and the group should get the message within seconds. Then cancel the test sign-up.
+
+Copy the values exactly, with no spaces and no quotation marks.
+
+### If no message arrives
+
+Open **Logs** on the `police-volunteers` service and look for lines starting with `[telegram]`:
+
+- `notifications are off`: one of the two settings is missing or misspelled. The key names must be exactly as written above.
+- `HTTP 401`: the token is wrong. Copy it again from BotFather.
+- `HTTP 400 ... chat not found`: the Chat ID is wrong (check the minus sign), or the bot isn't in the group.
+- `HTTP 403 ... bot was kicked`: the bot was removed from the group. Add it again.

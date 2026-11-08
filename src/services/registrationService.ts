@@ -6,6 +6,7 @@ import {
   computeStaffing,
   decideRegistration,
   formatHHMM,
+  isWholeShift,
   ltrRange,
   nextShiftStatus,
   pickPromotion,
@@ -13,6 +14,7 @@ import {
   type ShiftType,
   type Staffing,
 } from '../domain/registrationRules.ts';
+import { notifySignUp, type SignUpNotice } from '../lib/telegram.ts';
 import { loadShift, overridesFor, registrationInterval, windowOf } from './shiftState.ts';
 
 const toTime = (hhmm: string | null) => (hhmm ? hhmmToTime(hhmm) : null);
@@ -87,9 +89,11 @@ export interface RequestedHours {
  * Their driving-chip status is taken from their profile at this moment.
  */
 export async function registerForShift(userId: string, shiftId: string, hours: RequestedHours) {
-  return withSerializableTx(async (tx) => {
+  // Filled inside the transaction; sent only after it has committed successfully.
+  let notice: SignUpNotice | null = null;
+  const result = await withSerializableTx(async (tx) => {
     const [user, loaded, existing] = await Promise.all([
-      tx.user.findUnique({ where: { id: userId }, select: { isActive: true, hasDrivingChip: true, certification: true } }),
+      tx.user.findUnique({ where: { id: userId }, select: { isActive: true, hasDrivingChip: true, certification: true, fullName: true } }),
       loadShift(tx, shiftId),
       tx.shiftRegistration.findUnique({ where: { shiftId_userId: { shiftId, userId } } }),
     ]);
@@ -117,6 +121,18 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
 
     const staffing = await rebalanceShift(tx, shiftId);
     const range = ltrRange(formatHHMM(decision.interval.start), formatHHMM(decision.interval.end));
+    notice = {
+      fullName: user.fullName,
+      date: toIsoDate(shift.date),
+      shiftType: shift.shiftType as ShiftType,
+      startTime: formatHHMM(decision.interval.start),
+      endTime: formatHHMM(decision.interval.end),
+      partial: !isWholeShift(decision.interval, window),
+      certification: user.certification as Certification,
+      hasDrivingChip: user.hasDrivingChip,
+      opensNewCar: hours.opensNewCar === true,
+      waitlisted: decision.outcome === 'WAITLISTED',
+    };
     return {
       registration,
       hours: { startTime: formatHHMM(decision.interval.start), endTime: formatHHMM(decision.interval.end) },
@@ -130,6 +146,10 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
       staffing,
     };
   });
+  // Telegram push to the commanders. Fire-and-forget: never fails or delays the sign-up.
+  const toSend = notice as SignUpNotice | null; // (assigned inside the callback above)
+  if (toSend) notifySignUp(toSend);
+  return result;
 }
 
 /**

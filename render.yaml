@@ -35,3 +35,6 @@ services:
       # Render asks for this one when you create the Blueprint:
       - key: COMMANDER_PIN # the code the shift scheduler types to sign in
         sync: false
+      # Telegram notifications to the commanders (optional).
+      # Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID by hand in Render → police-volunteers → Environment.
+      # They are deliberately NOT listed here, so the token is never stored in GitHub. See DEPLOY.md.

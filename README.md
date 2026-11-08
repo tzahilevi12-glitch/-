@@ -57,6 +57,7 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 | Driver priority | When the remaining seats are all needed for drivers, a non-driver's sign-up goes on the waitlist (no "drivers only" warning is shown; volunteers just see their status). They're promoted automatically, or the commander approves them. |
 | One per day | One shift per volunteer per calendar day (the shift's start date). Night shift + next-day morning is allowed (06:00–07:00 is the briefing). |
 | Cancellation alert | Cancelling is a single "are you sure?" popup. It always creates an alert for the scheduler, in the same transaction, so it can't happen silently. The scheduler sees it as a popup in the dashboard (checked on load and every 30 s) until they press "קראתי". Cancellations less than 24 h before the shift are flagged urgent. |
+| Telegram push | After every successful volunteer sign-up (including waitlist), the server sends a Hebrew message to the commanders' Telegram group (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; comma-separated IDs allowed). It is sent only after the registration is committed, is fire-and-forget with a 10 s timeout, and never fails the sign-up. Missing settings or Telegram errors are only logged (`src/lib/telegram.ts`). |
 | Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |
 
 ## API
