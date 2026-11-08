@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import type { StaffAlert } from '../types.ts';
 import { whenLabel } from '../format.ts';
 import { Sheet } from '../ui.tsx';
+import { AlertIcon, ClockIcon } from '../icons.tsx';
 
 const POLL_MS = 30_000;
 
@@ -56,9 +57,17 @@ export function CancellationAlerts({ onNew }: { onNew: () => void }) {
         <ul className="alert-list">
           {alerts.map((a) => (
             <li key={a.id} className={`alert-item${a.urgent ? ' is-urgent' : ''}`}>
-              {a.urgent && <span className="urgent-tag">פחות מ-24 שעות לפני המשמרת</span>}
-              <p className="alert-message">{a.message}</p>
-                            <p className="muted small">{whenLabel(a.createdAt)}</p>
+              <span className="alert-icon">
+                <AlertIcon size={18} />
+              </span>
+              <div>
+                {a.urgent && <span className="urgent-tag">פחות מ-24 שעות לפני המשמרת</span>}
+                <p className="alert-message">{a.message}</p>
+                <p className="meta-item muted small">
+                  <ClockIcon size={13} />
+                  {whenLabel(a.createdAt)}
+                </p>
+              </div>
             </li>
           ))}
         </ul>

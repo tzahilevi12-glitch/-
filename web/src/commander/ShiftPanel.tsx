@@ -2,19 +2,30 @@ import { useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
-import { CertMark, DriverChip, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { Avatar, CertMark, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { CalendarIcon, CheckIcon, ClockIcon, ShiftTypeIcon, UsersIcon, WheelIcon, XIcon } from '../icons.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
   return (
     <li className="person">
+      <Avatar name={p.fullName} driver={p.hasDrivingChip} />
       <div className="person-main">
         <span className="person-name">
-          {p.hasDrivingChip && <DriverChip small />}
           {p.fullName}
           <CertMark certification={p.certification} />
           {p.opensNewCar && <NewCarTag certification={p.certification} long />}
         </span>
-        <span className="muted small">{p.isPartial ? range(p.startTime, p.endTime) : 'כל המשמרת'}</span>
+        <span className="person-sub">
+          {p.hasDrivingChip && (
+            <span className="meta-item">
+              <WheelIcon size={13} /> נהג
+            </span>
+          )}
+          <span className="meta-item">
+            <ClockIcon size={13} />
+            {p.isPartial ? range(p.startTime, p.endTime) : 'כל המשמרת'}
+          </span>
+        </span>
       </div>
       <div className="person-actions">{actions}</div>
     </li>
@@ -66,9 +77,23 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
   return (
     <Sheet title={`${SHIFT_LABEL[shift.shiftType]}, ${dayLabel(shift.date)}`} onClose={onClose} wide>
       <div className="sheet-body">
+        <div className="sheet-meta">
+          <span className={`shift-icon shift-icon-sm type-icon-${shift.shiftType.toLowerCase()}`}>
+            <ShiftTypeIcon type={shift.shiftType} size={18} />
+          </span>
+          <span className="meta-item">
+            <CalendarIcon size={15} />
+            {dayLabel(shift.date)}
+          </span>
+          <span className="meta-item">
+            <ClockIcon size={15} />
+            {range(shift.startTime, shift.endTime)}
+          </span>
+        </div>
         <div className="panel-status">
           <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{driverText}</span>
           <span className="cell-ratio">
+            <UsersIcon size={15} />
             רשומים <strong>{shift.seatsTaken + shift.extraVolunteers}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
           </span>
           {shift.extraVolunteers > 0 && (
@@ -105,6 +130,7 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
                 p={p}
                 actions={
                   <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setReg(p.registrationId, 'CANCELLED')}>
+                    <XIcon size={14} />
                     הסרה
                   </button>
                 }
@@ -125,6 +151,7 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
                   actions={
                     <>
                       <button className="btn btn-primary btn-sm" disabled={busy || shift.seatsLeft === 0} onClick={() => setReg(p.registrationId, 'APPROVED')}>
+                        <CheckIcon size={14} />
                         אישור
                       </button>
                       <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setReg(p.registrationId, 'CANCELLED')}>

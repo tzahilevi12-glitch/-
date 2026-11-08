@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { Certification, Volunteer } from '../types.ts';
 import { CERTIFICATIONS, CERT_LABEL } from '../format.ts';
-import { LoadState, WheelIcon, toast, useLoad } from '../ui.tsx';
+import { Avatar, LoadState, WheelIcon, toast, useLoad } from '../ui.tsx';
+import { SearchIcon, ShieldIcon, UsersIcon } from '../icons.tsx';
 
 export function Volunteers({ refreshKey }: { refreshKey: number }) {
   const [q, setQ] = useState('');
@@ -28,9 +29,15 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
   return (
     <section className="cmd-page">
       <div className="week-head">
-        <h1>מתנדבים</h1>
+        <h1>
+          <UsersIcon size={24} />
+          מתנדבים
+        </h1>
         <p className="week-status">מתנדבים נכנסים עם השם שלהם. כאן אפשר לתקן צ'יפ נהיגה או הסמכה, או להשהות מתנדב.</p>
-        <input className="input search" type="search" placeholder="חיפוש לפי שם" value={q} onChange={(e) => setQ(e.target.value)} aria-label="חיפוש מתנדבים" />
+        <span className="input-wrap search">
+          <SearchIcon size={18} />
+          <input className="input has-icon" type="search" placeholder="חיפוש לפי שם" value={q} onChange={(e) => setQ(e.target.value)} aria-label="חיפוש מתנדבים" />
+        </span>
       </div>
 
       {!data ? (
@@ -44,8 +51,16 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
           <thead>
             <tr>
               <th>שם</th>
-              <th>צ'יפ נהיגה</th>
-              <th>הסמכה</th>
+              <th>
+                <span className="th-icon">
+                  <WheelIcon size={14} /> צ'יפ נהיגה
+                </span>
+              </th>
+              <th>
+                <span className="th-icon">
+                  <ShieldIcon size={14} /> הסמכה
+                </span>
+              </th>
               <th>משמרות קרובות</th>
               <th>סטטוס</th>
             </tr>
@@ -53,7 +68,12 @@ export function Volunteers({ refreshKey }: { refreshKey: number }) {
           <tbody>
             {data.users.map((v) => (
               <tr key={v.id} className={v.isActive ? '' : 'is-paused'}>
-                <td>{v.fullName}</td>
+                <td>
+                  <span className="vol-name">
+                    <Avatar name={v.fullName} driver={v.hasDrivingChip} size="sm" />
+                    {v.fullName}
+                  </span>
+                </td>
                 <td>
                   <button
                     className={`chip-toggle${v.hasDrivingChip ? ' is-on' : ''}`}

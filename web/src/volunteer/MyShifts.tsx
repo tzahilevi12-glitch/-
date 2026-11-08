@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import type { MyShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, inWindow, minutesUntil, range, windowOf } from '../format.ts';
 import { DutyBar, LoadState, NewCarTag, Sheet, useLoad } from '../ui.tsx';
+import { CalendarIcon, ClipboardIcon, ClockIcon, ShiftTypeIcon, XIcon } from '../icons.tsx';
 
 /**
  * Cancelling always notifies the shift scheduler. The volunteer is told so before
@@ -77,15 +78,26 @@ function ShiftCard({ s, isDriver, onCancel }: { s: MyShift; isDriver: boolean; o
   return (
     <li className={`my-card type-${s.shiftType.toLowerCase()}${s.status === 'PENDING' ? ' is-pending' : ''}`}>
       <div className="my-card-head">
-        <div>
-          <p className="my-card-date">{dayLabel(s.date)}</p>
-          <p className="my-card-title">
-            משמרת {SHIFT_LABEL[s.shiftType]}
-            <span className="shift-hours">{range(s.startTime, s.endTime)}</span>
+        <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
+          <ShiftTypeIcon type={s.shiftType} size={22} />
+        </span>
+        <div className="my-card-heading">
+          <p className="my-card-title">משמרת {SHIFT_LABEL[s.shiftType]}</p>
+          <p className="my-card-date">
+            <span className="meta-item">
+              <CalendarIcon size={14} />
+              {dayLabel(s.date)}
+            </span>
+            <span className="meta-item">
+              <ClockIcon size={14} />
+              {range(s.startTime, s.endTime)}
+            </span>
           </p>
         </div>
-        {s.status === 'PENDING' && <span className="mine-tag is-pending">ברשימת המתנה</span>}
-        {s.opensNewCar && <NewCarTag />}
+        <div className="my-card-tags">
+          {s.status === 'PENDING' && <span className="mine-tag is-pending">ברשימת המתנה</span>}
+          {s.opensNewCar && <NewCarTag />}
+        </div>
       </div>
       <DutyBar
         start={s.shiftStartTime}
@@ -95,7 +107,8 @@ function ShiftCard({ s, isDriver, onCancel }: { s: MyShift; isDriver: boolean; o
       {s.isPartial && <p className="muted small">חלק ממשמרת {range(s.shiftStartTime, s.shiftEndTime)}</p>}
       {s.status === 'PENDING' && <p className="info-note">ההרשמה ממתינה לשיבוץ. כשיתפנה מקום היא תאושר אוטומטית.</p>}
       <div className="my-card-foot">
-        <button className="btn btn-ghost" onClick={onCancel}>
+        <button className="btn btn-ghost btn-sm" onClick={onCancel}>
+          <XIcon size={15} />
           {s.status === 'PENDING' ? 'יציאה מרשימת ההמתנה' : 'ביטול משמרת'}
         </button>
       </div>
@@ -116,6 +129,9 @@ export function MyShifts({ isDriver, name }: { isDriver: boolean; name: string }
       <p className="page-sub">{n === 0 ? 'אין לך משמרות קרובות.' : n === 1 ? 'יש לך משמרת אחת קרובה.' : `יש לך ${n} משמרות קרובות.`}</p>
       {all.length === 0 ? (
         <div className="empty">
+          <span className="empty-icon">
+            <ClipboardIcon size={28} />
+          </span>
           <p>אפשר לבחור משמרת בלוח המשמרות.</p>
           <a className="btn btn-primary" href="#/board">
             ללוח המשמרות

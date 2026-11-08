@@ -1,4 +1,6 @@
 import { ShiftBoard } from './ShiftBoard.tsx';
+import { Brand } from '../ui.tsx';
+import { EyeIcon, UserIcon } from '../icons.tsx';
 
 /** Read-only guest view: the published shift board with names, no sign-in and no actions. */
 export function GuestView() {
@@ -6,11 +8,13 @@ export function GuestView() {
     <div className="site">
       <header className="site-head">
         <div className="site-head-inner">
-          <a className="site-brand" href="#/guest">
-            משמרות מתנדבים
-          </a>
-          <span className="guest-tag">צפייה כאורח</span>
+          <Brand href="#/guest" subtitle="מערכת שיבוץ מתנדבי משטרה" />
+          <span className="guest-tag">
+            <EyeIcon size={15} />
+            צפייה כאורח
+          </span>
           <a className="site-who" href="#/">
+            <UserIcon size={16} />
             כניסה כמתנדב
           </a>
         </div>

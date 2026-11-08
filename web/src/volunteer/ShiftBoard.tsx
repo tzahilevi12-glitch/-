@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
 import { LoadState, ShiftBadge, useLoad } from '../ui.tsx';
+import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
 /** First-strong isolate: a name in Latin or Hebrew letters keeps the line's punctuation in place. */
@@ -55,23 +56,35 @@ export function ShiftBoard({
 
       {days.size === 0 && (
         <div className="empty">
+          <span className="empty-icon">
+            <CalendarIcon size={28} />
+          </span>
           <p>אין כרגע משמרות פתוחות. כשמזין המשמרות יפרסם את השבוע הבא, תופיע כאן הודעה.</p>
         </div>
       )}
 
       {[...days].map(([date, shifts]) => (
         <div key={date} className="day">
-          <h2 className="day-head">{dayHeading(date)}</h2>
+          <h2 className="day-head">
+            <CalendarIcon size={17} />
+            {dayHeading(date)}
+          </h2>
           <ul className="shift-list">
             {shifts.map((s) => {
               const mine = s.myRegistration;
               const blocked = !mine && s.iHaveShiftThatDay;
               return (
                 <li key={s.id} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
+                  <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
+                    <ShiftTypeIcon type={s.shiftType} size={22} />
+                  </span>
                   <div className="shift-main">
                     <div className="shift-name">
                       {SHIFT_LABEL[s.shiftType]}
-                      <span className="shift-hours">{range(s.startTime, s.endTime)}</span>
+                      <span className="shift-hours">
+                        <ClockIcon size={14} />
+                        {range(s.startTime, s.endTime)}
+                      </span>
                     </div>
                     <div className="shift-meta">
                       <ShiftBadge badge={s.badge} />
@@ -80,6 +93,7 @@ export function ShiftBoard({
                       </span>
                     </div>
                     <p className="shift-people">
+                      <UsersIcon size={13} />
                       {s.registeredCount === 0
                         ? 'עדיין אין רשומים'
                         : `${s.registeredCount === 1 ? 'רשום אחד' : `${s.registeredCount} רשומים`}: ${s.registeredNames.map(isolate).join(', ')}`}
@@ -88,12 +102,14 @@ export function ShiftBoard({
                   <div className="shift-action">
                     {readOnly ? null : mine ? (
                       <span className={`mine-tag${mine.status === 'PENDING' ? ' is-pending' : ''}`}>
+                        {mine.status === 'APPROVED' && <CheckIcon size={14} strokeWidth={2.6} />}
                         {mine.status === 'PENDING' ? 'ברשימת המתנה' : `${mine.opensNewCar ? 'נרשמת עם ניידת' : 'נרשמת'}: ${range(mine.startTime, mine.endTime)}`}
                       </span>
                     ) : blocked ? (
                       <span className="muted small">יש לך משמרת ביום הזה</span>
                     ) : (
                       <button className="btn btn-primary" onClick={() => setSelected(s)}>
+                        <PlusIcon size={16} strokeWidth={2.4} />
                         {s.badge === 'FULL' ? 'הרשמה (ניידת נוספת)' : 'הרשמה'}
                       </button>
                     )}

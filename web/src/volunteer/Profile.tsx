@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { api, getSession, setSession } from '../api.ts';
 import type { Certification, Me } from '../types.ts';
 import { CERTIFICATIONS, CERT_LABEL } from '../format.ts';
-import { ShieldIcon, WheelIcon, toast } from '../ui.tsx';
+import { Avatar, CertMark, ShieldIcon, WheelIcon, toast } from '../ui.tsx';
+import { LogOutIcon, UserIcon } from '../icons.tsx';
 
 export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
   const [fullName, setFullName] = useState(me.fullName);
@@ -39,9 +40,29 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
     <section className="page">
       <h1 className="page-title">פרופיל</h1>
 
+      <div className="profile-card">
+        <Avatar name={me.fullName} driver={me.hasDrivingChip} />
+        <div>
+          <p className="profile-name">{me.fullName}</p>
+          <p className="profile-tags">
+            {me.hasDrivingChip ? (
+              <span className="info-chip">
+                <WheelIcon size={13} /> יש צ'יפ נהיגה
+              </span>
+            ) : (
+              <span className="info-chip is-muted">ללא צ'יפ נהיגה</span>
+            )}
+            {me.certification && me.certification !== 'NONE' ? <CertMark certification={me.certification} /> : <span className="info-chip is-muted">מתנדב אק״מ</span>}
+          </p>
+        </div>
+      </div>
+
       <div className="panel">
         <label className="field">
-          <span className="field-label">שם מלא</span>
+          <span className="field-label field-label-icon">
+            <UserIcon size={16} />
+            שם מלא
+          </span>
           <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={80} />
         </label>
 
@@ -88,6 +109,7 @@ export function Profile({ me, onSaved }: { me: Me; onSaved: (m: Me) => void }) {
       </div>
 
       <button className="btn btn-ghost btn-block signout" onClick={signOut}>
+        <LogOutIcon size={16} />
         יציאה מהמכשיר הזה
       </button>
     </section>

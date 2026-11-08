@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, ltr, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { CarIcon, CertMark, DriverChip, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { Avatar, CarIcon, CertMark, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
@@ -21,7 +22,11 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
       aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}`}
     >
       <span className={`cell-ratio${registered >= shift.maxVolunteers ? ' is-full' : ''}`}>
+        <UsersIcon size={14} />
         רשומים <strong>{registered}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
+      </span>
+      <span className="ratio-bar" aria-hidden="true">
+        <span style={{ width: `${Math.min(100, (registered / Math.max(1, shift.maxVolunteers)) * 100)}%` }} />
       </span>
       <span className="cell-top">
         <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{green ? 'יש נהג' : 'אין נהג'}</span>
@@ -34,7 +39,7 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
       <span className="cell-names">
         {shown.map((p) => (
           <span key={p.registrationId} className="cell-name">
-            {p.hasDrivingChip && <DriverChip small />}
+            <Avatar name={p.fullName} driver={p.hasDrivingChip} size="sm" />
             <span className="cell-name-text">{p.fullName}</span>
             <CertMark certification={p.certification} />
             {p.opensNewCar && (
@@ -77,6 +82,7 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
   const upcoming = week.shifts.filter((s) => s.date >= today && s.status !== 'COMPLETED');
   const needsDriver = upcoming.filter((s) => s.driverAlert === 'RED').length;
   const waiting = upcoming.reduce((n, s) => n + s.waitlist.length, 0);
+  const extraCars = week.shifts.reduce((n, s) => n + s.extraVolunteers, 0);
   const label = weekRangeLabel(week.weekStart, week.weekEnd);
 
   async function publish() {
@@ -106,12 +112,15 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
     <section className="cmd-page">
       <div className="week-head">
         <div className="week-nav">
-          <button className="icon-btn" onClick={() => setAnchor(addDays(week.weekStart, -7))} aria-label="השבוע הקודם">
-            ›
+          <button className="icon-btn icon-btn-outline" onClick={() => setAnchor(addDays(week.weekStart, -7))} aria-label="השבוע הקודם">
+            <ChevronIcon dir="right" size={20} />
           </button>
-          <h1>{label}</h1>
-          <button className="icon-btn" onClick={() => setAnchor(addDays(week.weekStart, 7))} aria-label="השבוע הבא">
-            ‹
+          <h1>
+            <CalendarIcon size={24} />
+            {label}
+          </h1>
+          <button className="icon-btn icon-btn-outline" onClick={() => setAnchor(addDays(week.weekStart, 7))} aria-label="השבוע הבא">
+            <ChevronIcon dir="left" size={20} />
           </button>
         </div>
         <p className="week-status">
@@ -121,12 +130,49 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
         </p>
         <div className="week-actions">
           <button className="btn btn-ghost" onClick={() => setAdding('week')}>
+            <PlusIcon size={17} />
             הוספת משמרות
           </button>
           <button className="btn btn-primary" disabled={week.draftCount === 0} onClick={() => setPublishing(true)}>
+            <MegaphoneIcon size={17} />
             {week.publishedCount > 0 && week.draftCount > 0 ? `פרסום ${week.draftCount} חדשות` : 'פרסום השבוע'}
           </button>
         </div>
+      </div>
+
+      <div className="summary-strip" aria-label="סיכום השבוע">
+        <span className="summary-item">
+          <span className="summary-icon">
+            <CalendarIcon size={18} />
+          </span>
+          <span>
+            <strong>{week.shifts.length}</strong> משמרות בשבוע
+          </span>
+        </span>
+        <span className={`summary-item${needsDriver > 0 ? ' is-alert' : ''}`}>
+          <span className="summary-icon">
+            <AlertIcon size={18} />
+          </span>
+          <span>
+            <strong>{needsDriver}</strong> קרובות בלי נהג
+          </span>
+        </span>
+        <span className={`summary-item${waiting > 0 ? ' is-warn' : ''}`}>
+          <span className="summary-icon">
+            <UsersIcon size={18} />
+          </span>
+          <span>
+            <strong>{waiting}</strong> ממתינים לאישור
+          </span>
+        </span>
+        <span className="summary-item">
+          <span className="summary-icon">
+            <CarIcon size={18} />
+          </span>
+          <span>
+            <strong>{extraCars}</strong> ניידות נוספות
+          </span>
+        </span>
       </div>
 
       <div className="grid-scroll">
@@ -142,8 +188,14 @@ export function WeekView({ refreshKey }: { refreshKey: number }) {
           {SHIFT_TYPES.map((t) => (
             <div key={t} className="roster-row" role="row">
               <span role="rowheader" className="roster-type">
-                {SHIFT_LABEL[t]}
-                <span className="muted small">{range(defaultStart[t], defaultEnd[t])}</span>
+                <span className={`shift-icon shift-icon-sm type-icon-${t.toLowerCase()}`}>
+                  <ShiftTypeIcon type={t} size={18} />
+                </span>
+                <span className="roster-type-label">{SHIFT_LABEL[t]}</span>
+                <span className="roster-type-hours">
+                  <ClockIcon size={12} />
+                  {range(defaultStart[t], defaultEnd[t])}
+                </span>
               </span>
               {days.map((d) => {
                 const s = byKey.get(`${d}|${t}`);

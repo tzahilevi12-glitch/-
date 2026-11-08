@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import type { BoardShift, Certification } from '../types.ts';
 import { CERT_SHORT, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified, range, timeOptions, windowOf } from '../format.ts';
 import { CarIcon, DutyBar, Sheet, ShiftBadge, toast } from '../ui.tsx';
+import { CalendarIcon, ClockIcon, ShiftTypeIcon } from '../icons.tsx';
 
 export function SignUpSheet({
   shift,
@@ -53,9 +54,19 @@ export function SignUpSheet({
   return (
     <Sheet title={`משמרת ${SHIFT_LABEL[shift.shiftType]}`} onClose={onClose}>
       <div className="sheet-body">
-        <p className="sheet-date">
-          {dayLabel(shift.date)}, {range(shift.startTime, shift.endTime)}
-        </p>
+        <div className="sheet-meta">
+          <span className={`shift-icon shift-icon-sm type-icon-${shift.shiftType.toLowerCase()}`}>
+            <ShiftTypeIcon type={shift.shiftType} size={18} />
+          </span>
+          <span className="meta-item">
+            <CalendarIcon size={15} />
+            {dayLabel(shift.date)}
+          </span>
+          <span className="meta-item">
+            <ClockIcon size={15} />
+            {range(shift.startTime, shift.endTime)}
+          </span>
+        </div>
         <div className="sheet-status">
           <ShiftBadge badge={shift.badge} />
           <span className="muted">

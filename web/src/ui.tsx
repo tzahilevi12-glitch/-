@@ -1,39 +1,42 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
 import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, windowOf } from './format.ts';
+import { CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, WheelIcon, XIcon } from './icons.tsx';
 
-// ───────────── icons ─────────────
+// ───────────── icons (see icons.tsx) ─────────────
 
-export function WheelIcon({ size = 16 }: { size?: number }) {
+export { CarIcon, CheckIcon, ShieldIcon, WheelIcon };
+
+// ───────────── brand ─────────────
+
+/** Header lockup: police car emblem + system name. */
+export function Brand({ subtitle, href }: { subtitle: string; href: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="2.2" />
-      <path d="M3.5 10.5h6.3M14.2 10.5h6.3M12 14.2V21" />
-    </svg>
+    <a className="brand" href={href}>
+      <span className="brand-badge">
+        <PoliceCarEmblem size={30} />
+      </span>
+      <span className="brand-text">
+        <strong>משמרות מתנדבים</strong>
+        <span>{subtitle}</span>
+      </span>
+    </a>
   );
 }
 
-/** Police badge / shield — Level B / Level C qualification. */
-export function ShieldIcon({ size = 16 }: { size?: number }) {
+/** Round initials badge next to a volunteer's name. */
+export function Avatar({ name, driver, size = 'md' }: { name: string; driver?: boolean; size?: 'sm' | 'md' }) {
+  const parts = name.trim().split(/\s+/);
+  const initials = (parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-      <path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6L12 3z" />
-      <path d="M12 8.2l1.2 2.5 2.7.3-2 1.8.6 2.7-2.5-1.4-2.5 1.4.6-2.7-2-1.8 2.7-.3z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-/** Patrol car — "opening an additional patrol car". */
-export function CarIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M4 16v-3.2l1.8-4.3A2 2 0 0 1 7.6 7.3h8.8a2 2 0 0 1 1.8 1.2L20 12.8V16" />
-      <path d="M3 16h18v2.2H3z" />
-      <circle cx="7.5" cy="18.5" r="1.6" />
-      <circle cx="16.5" cy="18.5" r="1.6" />
-      <path d="M9.5 4.5h2.2M12.3 4.5h2.2" strokeWidth="2.6" />
-    </svg>
+    <span className={`avatar avatar-${size}${driver ? ' is-driver' : ''}`} aria-hidden="true">
+      {initials}
+      {driver && (
+        <span className="avatar-wheel">
+          <WheelIcon size={size === 'sm' ? 9 : 11} strokeWidth={2.6} />
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -56,14 +59,6 @@ export function CertMark({ certification }: { certification: Certification }) {
       <ShieldIcon size={11} />
       {CERT_SHORT[certification]}
     </span>
-  );
-}
-
-export function CheckIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
-      <path d="M5 12.5l4.5 4.5L19 7.5" />
-    </svg>
   );
 }
 
@@ -175,7 +170,7 @@ export function Sheet({ title, onClose, children, wide }: { title: string; onClo
         <div className="sheet-head">
           <h2>{title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="סגירה">
-            ✕
+            <XIcon size={20} />
           </button>
         </div>
         {children}

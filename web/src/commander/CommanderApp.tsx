@@ -3,6 +3,8 @@ import { api, getSession, setSession } from '../api.ts';
 import { CancellationAlerts } from './CancellationAlerts.tsx';
 import { Volunteers } from './Volunteers.tsx';
 import { WeekView } from './WeekView.tsx';
+import { Avatar, Brand } from '../ui.tsx';
+import { CalendarIcon, LogOutIcon, UsersIcon } from '../icons.tsx';
 
 export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
   const session = getSession('commander');
@@ -21,19 +23,22 @@ export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
   return (
     <div className="cmd">
       <header className="cmd-bar">
-        <span className="site-brand">משמרות מתנדבים</span>
+        <Brand href="#/commander" subtitle="לוח מזין המשמרות" />
         <nav className="cmd-tabs" aria-label="ניווט">
           <a href="#/commander" className={tab === 'roster' ? 'is-on' : ''} aria-current={tab === 'roster' ? 'page' : undefined}>
+            <CalendarIcon size={17} />
             לוח שבועי
           </a>
           <a href="#/commander/volunteers" className={tab === 'volunteers' ? 'is-on' : ''} aria-current={tab === 'volunteers' ? 'page' : undefined}>
+            <UsersIcon size={17} />
             מתנדבים
           </a>
         </nav>
         <span className="cmd-who">
-          {session?.fullName}
-          <button className="link-btn" onClick={signOut}>
-            יציאה
+          {session && <Avatar name={session.fullName} size="sm" />}
+          <span className="site-who-name">{session?.fullName}</span>
+          <button className="icon-btn icon-btn-light" onClick={signOut} aria-label="יציאה" title="יציאה">
+            <LogOutIcon size={18} />
           </button>
         </span>
       </header>
