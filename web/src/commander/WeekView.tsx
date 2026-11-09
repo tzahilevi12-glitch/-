@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
-import { SHIFT_LABEL, SHIFT_TYPES, addDays, ltr, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
+import { SHIFT_LABEL, SHIFT_TYPES, addDays, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
 import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
 import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
@@ -11,15 +11,18 @@ const defaultStart: Record<ShiftType, string> = { MORNING: '06:00', EVENING: '14
 const defaultEnd: Record<ShiftType, string> = { MORNING: '15:00', EVENING: '22:00', NIGHT: '07:00' };
 
 function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
-  const shown = shift.approved.slice(0, 4);
-  const more = shift.approved.length - shown.length;
+  // Extra patrol cars run in parallel: they are listed separately and never count toward the regular slots.
+  const regular = shift.approved.filter((p) => !p.opensNewCar);
+  const cars = shift.approved.filter((p) => p.opensNewCar);
+  const shown = regular.slice(0, 4);
+  const more = regular.length - shown.length;
   const green = shift.driverAlert === 'GREEN';
-  const registered = shift.seatsTaken + shift.extraVolunteers;
+  const registered = shift.seatsTaken;
   return (
     <button
       className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}`}
       onClick={onOpen}
-      aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}`}
+      aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}${cars.length ? `, ${cars.length} ניידות נוספות` : ''}`}
     >
       <span className={`cell-ratio${registered >= shift.maxVolunteers ? ' is-full' : ''}`}>
         <UsersIcon size={14} />
@@ -30,11 +33,6 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
       </span>
       <span className="cell-top">
         <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{green ? 'יש נהג' : 'אין נהג'}</span>
-        {shift.extraVolunteers > 0 && (
-          <span className="extra-tag" title="מוסמכי שלב ב'/ג' בניידת נוספת">
-            {ltr(`+${shift.extraVolunteers}`)} ניידת נוספת
-          </span>
-        )}
       </span>
       <span className="cell-names">
         {shown.map((p) => (
@@ -42,11 +40,6 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
             <span className="cell-name-text">{p.fullName}</span>
             <CertMark certification={p.certification} compact />
             {p.hasDrivingChip && <DriverBadge compact />}
-            {p.opensNewCar && (
-              <span className="car-mark" title="פותח ניידת נוספת" aria-label="פותח ניידת נוספת">
-                <CarIcon size={13} />
-              </span>
-            )}
             {p.cancelRequestedAt && (
               <span className="req-mark" title="ביקש/ה ביטול – ממתין לאישורך" aria-label="ביקש/ה ביטול">
                 <HourglassIcon size={13} />
@@ -56,8 +49,29 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
           </span>
         ))}
         {more > 0 && <span className="muted small">ועוד {more}</span>}
-        {shift.approved.length === 0 && <span className="muted small">עדיין אין רשומים</span>}
+        {regular.length === 0 && <span className="muted small">עדיין אין רשומים</span>}
       </span>
+      {cars.length > 0 && (
+        <span className="car-group">
+          <span className="car-group-head">
+            <CarIcon size={13} />
+            {cars.length === 1 ? 'ניידת נוספת' : `${cars.length} ניידות נוספות`}
+          </span>
+          {cars.map((p) => (
+            <span key={p.registrationId} className="cell-name">
+              <span className="cell-name-text">{p.fullName}</span>
+              <CertMark certification={p.certification} compact />
+              {p.hasDrivingChip && <DriverBadge compact />}
+              {p.cancelRequestedAt && (
+                <span className="req-mark" title="ביקש/ה ביטול – ממתין לאישורך" aria-label="ביקש/ה ביטול">
+                  <HourglassIcon size={13} />
+                </span>
+              )}
+              {p.isPartial && <span className="cell-hours">{range(p.startTime, p.endTime)}</span>}
+            </span>
+          ))}
+        </span>
+      )}
       <span className="cell-foot">
         {shift.waitlist.length > 0 && <span className="wait-tag">{shift.waitlist.length === 1 ? 'ממתין אחד' : `${shift.waitlist.length} ממתינים`}</span>}
         {!shift.published && <span className="pub-tag is-draft">טיוטה</span>}

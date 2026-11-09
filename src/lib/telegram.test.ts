@@ -29,8 +29,13 @@ test('message: basic Hebrew format, afternoon is צהריים, no car line for �
 
 test('message: Level A has no car line; Level B/C always show it', () => {
   assert.doesNotMatch(buildSignUpMessage({ ...base, certification: 'LEVEL_A' }), /ניידת/);
-  assert.match(buildSignUpMessage({ ...base, certification: 'LEVEL_B', opensNewCar: true }), /🎓 הסמכה: שלב ב׳[\s\S]*🚓 פתיחת ניידת: כן/);
-  assert.match(buildSignUpMessage({ ...base, certification: 'LEVEL_C', opensNewCar: false }), /🚓 פתיחת ניידת: לא/);
+  const car = buildSignUpMessage({ ...base, certification: 'LEVEL_B', opensNewCar: true });
+  assert.match(car, /^🚓🚓 ניידת נוספת למשמרת! 🚓🚓/);
+  assert.match(car, /🎓 הסמכה: שלב ב׳[\s\S]*🚓 פתיחת ניידת: כן – ניידת נוספת/);
+  assert.match(car, /לא תופסת מקום רגיל/);
+  const regularC = buildSignUpMessage({ ...base, certification: 'LEVEL_C', opensNewCar: false });
+  assert.match(regularC, /^🚨 הרשמה חדשה למשמרת!/);
+  assert.match(regularC, /🚓 פתיחת ניידת: לא \(מקום רגיל במשמרת\)/);
 });
 
 test('message: partial hours, no chip, waitlist', () => {

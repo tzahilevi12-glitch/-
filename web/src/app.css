@@ -707,3 +707,42 @@ button { font: inherit; color: inherit; }
 .cell-name .cell-name-text { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; }
 .cell-name { align-items: center; row-gap: 2px; padding: 2px 0; }
 .cell-name .cell-name-text { overflow-wrap: normal; word-break: normal; min-width: min-content; flex: 1 1 0; }
+
+/* ── Extra patrol car (ניידת נוספת) — a parallel slot, styled in navy ─────────── */
+.btn-car { background: var(--police); color: #fff; box-shadow: 0 1px 2px rgba(7, 31, 77, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.btn-car:hover:not(:disabled) { background: var(--police-900); }
+.shift-buttons { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.shift-buttons .btn { justify-content: center; white-space: nowrap; }
+.shift-buttons > .muted { text-align: center; }
+@media (max-width: 480px) {
+  .shift-buttons { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* board: the extra-car line under the regular names */
+.shift-cars {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px;
+  padding: 7px 10px; border-radius: var(--r-sm);
+  background: #eef2fa; box-shadow: inset 3px 0 0 var(--police); font-size: 0.85rem;
+}
+.shift-cars-head { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: var(--police); }
+
+/* commander week cell: separate group */
+.car-group {
+  display: flex; flex-direction: column; gap: 3px; margin-top: 6px; padding: 6px 8px;
+  border-radius: var(--r-sm); background: #eef2fa; box-shadow: inset 3px 0 0 var(--police);
+}
+.car-group-head { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 700; color: var(--police); }
+
+/* commander shift panel: separate section */
+.car-section { margin-top: 6px; padding: 4px 12px 8px; border-radius: var(--r-md); background: #f1f4fa; box-shadow: inset 3px 0 0 var(--police); }
+.car-section-head { display: flex; align-items: center; gap: 6px; color: var(--police); }
+.car-section-note { font-size: 0.75rem; font-weight: 500; color: var(--ink-2); margin-inline-start: auto; }
+
+/* sign-up sheet: car mode banner */
+.car-info {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; margin: 4px 0 14px;
+  border-radius: var(--r-md); background: var(--police); color: #fff;
+}
+.car-info > svg { flex: none; margin-top: 2px; }
+.car-info-title { font-weight: 700; }
+.car-info-sub { font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }

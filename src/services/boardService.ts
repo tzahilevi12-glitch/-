@@ -44,6 +44,7 @@ export async function loadBoard(includeFull: boolean) {
             fullName: r.user.fullName,
             certification: r.user.certification,
             hasDrivingChip: r.user.hasDrivingChip,
+            opensNewCar: r.opensNewCar,
           })),
         },
       };

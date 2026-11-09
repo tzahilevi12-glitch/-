@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
-import { BadgeLegend, CertMark, DriverBadge, LoadState, ShiftBadge, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -36,7 +36,8 @@ export function ShiftBoard({
         }))
       : api<{ shifts: BoardShift[] }>('/shifts'),
   );
-  const [selected, setSelected] = useState<BoardShift | null>(null);
+  const [selected, setSelected] = useState<{ shift: BoardShift; mode: 'regular' | 'car' } | null>(null);
+  const canOpenCar = isCertified(certification); // שלב ב' / שלב ג'
 
   if (!data) return <LoadState error={loading ? null : error} onRetry={reload} />;
 
@@ -50,7 +51,7 @@ export function ShiftBoard({
         {readOnly
           ? 'צפייה בלבד: המשמרות שפורסמו ומי רשום לכל משמרת. כדי להירשם צריך להיכנס כמתנדב.'
           : isCertified(certification)
-          ? 'כל המשמרות שפורסמו, כולל מלאות (כמוסמך אפשר לפתוח ניידת נוספת). אפשר להירשם למשמרת אחת ביום.'
+          ? 'כל המשמרות שפורסמו, כולל מלאות. כמוסמך/ת אפשר להירשם גם כ״ניידת נוספת״ – במקביל למשמרת, בלי לתפוס מקום רגיל. אפשר להירשם למשמרת אחת ביום.'
           : 'משמרות שפורסמו ויש בהן מקום. אפשר להירשם למשמרת אחת ביום.'}
       </p>
       {days.size > 0 && <BadgeLegend />}
@@ -74,6 +75,11 @@ export function ShiftBoard({
             {shifts.map((s) => {
               const mine = s.myRegistration;
               const blocked = !mine && s.iHaveShiftThatDay;
+              // Extra patrol cars are listed apart from the regular roster and don't count toward its slots.
+              const regularPeople = (s.registeredPeople ?? []).filter((p) => !p.opensNewCar);
+              const carPeople = (s.registeredPeople ?? []).filter((p) => p.opensNewCar);
+              const regularCount = s.registeredPeople ? regularPeople.length : s.registeredCount;
+              const full = s.seatsLeft === 0;
               return (
                 <li key={s.id} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
                   <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
@@ -99,10 +105,11 @@ export function ShiftBoard({
                         'עדיין אין רשומים'
                       ) : (
                         <>
-                          <span className="shift-people-count">{s.registeredCount === 1 ? 'רשום אחד:' : `${s.registeredCount} רשומים:`}</span>
+                          <span className="shift-people-count">{regularCount === 1 ? 'רשום אחד:' : `${regularCount} רשומים:`}</span>
                           {s.registeredPeople ? (
                             <ul className="people-list">
-                              {s.registeredPeople.map((p, i) => (
+                              {regularPeople.length === 0 && <li className="muted">אין עדיין רשומים למקומות הרגילים</li>}
+                              {regularPeople.map((p, i) => (
                                 <li key={i} className="people-item">
                                   {p.fullName}
                                   <CertMark certification={p.certification} />
@@ -116,20 +123,51 @@ export function ShiftBoard({
                         </>
                       )}
                     </div>
+                    {carPeople.length > 0 && (
+                      <div className="shift-cars">
+                        <span className="shift-cars-head">
+                          <CarIcon size={14} />
+                          {carPeople.length === 1 ? 'ניידת נוספת:' : `${carPeople.length} ניידות נוספות:`}
+                        </span>
+                        <ul className="people-list">
+                          {carPeople.map((p, i) => (
+                            <li key={i} className="people-item">
+                              {p.fullName}
+                              <CertMark certification={p.certification} />
+                              {p.hasDrivingChip && <DriverBadge compact />}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   <div className="shift-action">
                     {readOnly ? null : mine ? (
                       <span className={`mine-tag${mine.status === 'PENDING' ? ' is-pending' : ''}`}>
                         {mine.status === 'APPROVED' && <CheckIcon size={14} strokeWidth={2.6} />}
-                        {mine.status === 'PENDING' ? 'ברשימת המתנה' : `${mine.opensNewCar ? 'נרשמת עם ניידת' : 'נרשמת'}: ${range(mine.startTime, mine.endTime)}`}
+                        {mine.opensNewCar && <CarIcon size={14} />}
+                        {mine.status === 'PENDING' ? 'ברשימת המתנה' : `${mine.opensNewCar ? 'ניידת נוספת' : 'נרשמת'}: ${range(mine.startTime, mine.endTime)}`}
                       </span>
                     ) : blocked ? (
                       <span className="muted small">יש לך משמרת ביום הזה</span>
                     ) : (
-                      <button className="btn btn-primary" onClick={() => setSelected(s)}>
-                        <PlusIcon size={16} strokeWidth={2.4} />
-                        {s.badge === 'FULL' ? 'הרשמה (ניידת נוספת)' : 'הרשמה'}
-                      </button>
+                      <div className="shift-buttons">
+                        {full ? (
+                          <span className="muted small">המשמרת מלאה</span>
+                        ) : (
+                          <button className="btn btn-primary" onClick={() => setSelected({ shift: s, mode: 'regular' })}>
+                            <PlusIcon size={16} strokeWidth={2.4} />
+                            הרשמה
+                          </button>
+                        )}
+                        {/* Separate extra-car slot: shown only to שלב ב'/ג' (the server enforces it too). */}
+                        {canOpenCar && (
+                          <button className="btn btn-car" onClick={() => setSelected({ shift: s, mode: 'car' })}>
+                            <CarIcon size={16} />
+                            ניידת נוספת
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </li>
@@ -141,7 +179,8 @@ export function ShiftBoard({
 
       {selected && (
         <SignUpSheet
-          shift={selected}
+          shift={selected.shift}
+          mode={selected.mode}
           isDriver={isDriver}
           certification={certification}
           onClose={() => setSelected(null)}

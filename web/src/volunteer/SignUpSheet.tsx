@@ -5,16 +5,23 @@ import { CERT_SHORT, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified
 import { CarIcon, DutyBar, Sheet, ShiftBadge, toast } from '../ui.tsx';
 import { CalendarIcon, ClockIcon, ShiftTypeIcon } from '../icons.tsx';
 
+/**
+ * mode "regular": a regular slot in the shift.
+ * mode "car": an extra patrol car (שלב ב'/ג' only). It runs in parallel to the shift and never
+ * takes a regular slot, so it is available even when the shift is full.
+ */
 export function SignUpSheet({
   shift,
   isDriver,
   certification,
+  mode,
   onClose,
   onDone,
 }: {
   shift: BoardShift;
   isDriver: boolean;
   certification: Certification;
+  mode: 'regular' | 'car';
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -29,11 +36,8 @@ export function SignUpSheet({
   const startTime = partial ? from : shift.startTime;
   const endTime = partial ? to : shift.endTime;
   const valid = inWindow(startTime, w) < inWindow(endTime, w);
-  // Level B/C can open an additional patrol car for this shift. A full shift can only be joined that way.
-  const canOpenCar = isCertified(certification);
-  const shiftFull = shift.seatsLeft === 0;
-  const [openCar, setOpenCar] = useState(canOpenCar && shiftFull);
-  const blockedFull = shiftFull && !openCar;
+  const openCar = mode === 'car' && isCertified(certification);
+  const blockedFull = !openCar && shift.seatsLeft === 0;
 
   async function submit() {
     setBusy(true);
@@ -52,7 +56,7 @@ export function SignUpSheet({
   }
 
   return (
-    <Sheet title={`משמרת ${SHIFT_LABEL[shift.shiftType]}`} onClose={onClose}>
+    <Sheet title={openCar ? `ניידת נוספת – משמרת ${SHIFT_LABEL[shift.shiftType]}` : `משמרת ${SHIFT_LABEL[shift.shiftType]}`} onClose={onClose}>
       <div className="sheet-body">
         <div className="sheet-meta">
           <span className={`shift-icon shift-icon-sm type-icon-${shift.shiftType.toLowerCase()}`}>
@@ -67,12 +71,24 @@ export function SignUpSheet({
             {range(shift.startTime, shift.endTime)}
           </span>
         </div>
-        <div className="sheet-status">
-          <ShiftBadge badge={shift.badge} />
-          <span className="muted">
-            {shift.seatsLeft > 0 ? `נותרו ${shift.seatsLeft} מתוך ${shift.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
-          </span>
-        </div>
+        {openCar ? (
+          <div className="car-info">
+            <CarIcon size={20} />
+            <div>
+              <p className="car-info-title">פתיחת ניידת נוספת ({CERT_SHORT[certification]})</p>
+              <p className="car-info-sub">
+                הניידת פועלת במקביל למשמרת ולא תופסת אף אחד מ-{shift.maxVolunteers} המקומות הרגילים. מזין המשמרות יקבל הודעה מיוחדת על הניידת.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="sheet-status">
+            <ShiftBadge badge={shift.badge} />
+            <span className="muted">
+              {shift.seatsLeft > 0 ? `נותרו ${shift.seatsLeft} מתוך ${shift.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
+            </span>
+          </div>
+        )}
 
         <div className="segmented" role="radiogroup" aria-label="שעות">
           <button role="radio" aria-checked={!partial} className={!partial ? 'is-on' : ''} onClick={() => setPartial(false)}>
@@ -119,20 +135,9 @@ export function SignUpSheet({
         )}
       </div>
       <div className="sheet-foot">
-        {canOpenCar && (
-          <label className={`car-check${openCar ? ' is-on' : ''}`}>
-            <input type="checkbox" checked={openCar} onChange={(e) => setOpenCar(e.target.checked)} />
-            <CarIcon size={18} />
-            <span>
-              <span className="car-check-title">מעוניין לפתוח ניידת {CERT_SHORT[certification]}</span>
-              <span className="car-check-sub">
-                {blockedFull ? 'המשמרת מלאה. אפשר להירשם אליה רק בפתיחת ניידת.' : 'ניידת נוספת, מעבר למספר המתנדבים במשמרת.'}
-              </span>
-            </span>
-          </label>
-        )}
-        <button className="btn btn-primary btn-block" onClick={submit} disabled={busy || !valid || blockedFull}>
-          {busy ? 'נרשמים…' : openCar ? `הרשמה ופתיחת ניידת, ${range(startTime, endTime)}` : `הרשמה לשעות ${range(startTime, endTime)}`}
+        <button className={`btn ${openCar ? "btn-car" : "btn-primary"} btn-block`} onClick={submit} disabled={busy || !valid || blockedFull}>
+          {openCar && <CarIcon size={17} />}
+          {busy ? 'נרשמים…' : openCar ? `פתיחת ניידת נוספת, ${range(startTime, endTime)}` : `הרשמה לשעות ${range(startTime, endTime)}`}
         </button>
       </div>
     </Sheet>

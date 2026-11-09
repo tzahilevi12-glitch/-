@@ -40,6 +40,8 @@ export interface RosterName {
   fullName: string;
   certification: Certification;
   hasDrivingChip: boolean;
+  /** Registered as an extra patrol car (parallel to the regular slots). */
+  opensNewCar?: boolean;
 }
 
 export interface GuestShift extends ShiftBase {

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
-import { Avatar, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { Avatar, CarIcon, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, HourglassIcon, ShiftTypeIcon, UsersIcon, XIcon } from '../icons.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
@@ -46,6 +46,9 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const signedUp = shift.approved.length + shift.waitlist.length;
+  // Extra patrol cars are listed in their own section; they don't use regular slots.
+  const regular = shift.approved.filter((p) => !p.opensNewCar);
+  const cars = shift.approved.filter((p) => p.opensNewCar);
 
   async function run(action: () => Promise<unknown>, done: string, close = false) {
     setBusy(true);
@@ -103,11 +106,11 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
           <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{driverText}</span>
           <span className="cell-ratio">
             <UsersIcon size={15} />
-            רשומים <strong>{shift.seatsTaken + shift.extraVolunteers}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
+            רשומים <strong>{shift.seatsTaken}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
           </span>
           {shift.extraVolunteers > 0 && (
             <span className="muted small">
-              (כולל {shift.extraVolunteers === 1 ? 'מתנדב אחד שפותח ניידת נוספת' : `${shift.extraVolunteers} מתנדבים שפותחים ניידות נוספות`})
+              + {shift.extraVolunteers === 1 ? 'ניידת נוספת אחת' : `${shift.extraVolunteers} ניידות נוספות`} (במקביל, מחוץ למכסה)
             </span>
           )}
           <span className={`pub-tag${shift.published ? '' : ' is-draft'}`}>{shift.published ? 'פורסם' : 'טיוטה'}</span>
@@ -129,11 +132,11 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
         )}
 
         <h3 className="sub-head">במשמרת</h3>
-        {shift.approved.length === 0 ? (
+        {regular.length === 0 ? (
           <p className="muted small">עדיין אף אחד לא נרשם.</p>
         ) : (
           <ul className="people">
-            {shift.approved.map((p) => (
+            {regular.map((p) => (
               <PersonRow
                 key={p.registrationId}
                 p={p}
@@ -158,6 +161,42 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
               />
             ))}
           </ul>
+        )}
+
+        {cars.length > 0 && (
+          <div className="car-section">
+            <h3 className="sub-head car-section-head">
+              <CarIcon size={16} />
+              ניידות נוספות
+              <span className="car-section-note">לא תופסות מקום במשמרת</span>
+            </h3>
+            <ul className="people">
+              {cars.map((p) => (
+                <PersonRow
+                  key={p.registrationId}
+                  p={p}
+                  actions={
+                    p.cancelRequestedAt ? (
+                      <>
+                        <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => decideCancel(p.registrationId, 'APPROVE')}>
+                          <CheckIcon size={14} />
+                          אישור ביטול
+                        </button>
+                        <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => decideCancel(p.registrationId, 'REJECT')}>
+                          דחייה
+                        </button>
+                      </>
+                    ) : (
+                      <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setReg(p.registrationId, 'CANCELLED')}>
+                        <XIcon size={14} />
+                        הסרה
+                      </button>
+                    )
+                  }
+                />
+              ))}
+            </ul>
+          </div>
         )}
 
         {shift.waitlist.length > 0 && (

@@ -49,8 +49,13 @@ export function hebrewDate(isoDate: string): string {
 
 /** The Hebrew message text (plain text — no Markdown, so names can never break the formatting). */
 export function buildSignUpMessage(n: SignUpNotice): string {
+  const car = n.opensNewCar && (n.certification === 'LEVEL_B' || n.certification === 'LEVEL_C');
   const lines = [
-    n.waitlisted ? '🚨 הרשמה חדשה למשמרת! (רשימת המתנה)' : '🚨 הרשמה חדשה למשמרת!',
+    car
+      ? '🚓🚓 ניידת נוספת למשמרת! 🚓🚓'
+      : n.waitlisted
+        ? '🚨 הרשמה חדשה למשמרת! (רשימת המתנה)'
+        : '🚨 הרשמה חדשה למשמרת!',
     '',
     `👤 מתנדב: ${n.fullName}`,
     `📅 תאריך: ${hebrewDate(n.date)}`,
@@ -59,8 +64,11 @@ export function buildSignUpMessage(n: SignUpNotice): string {
     `🔑 צ'יפ נהיגה: ${n.hasDrivingChip ? 'יש' : 'אין'}`,
   ];
   // Only Level B/C volunteers can open a patrol car, so the line is shown only for them.
-  if (n.certification === 'LEVEL_B' || n.certification === 'LEVEL_C') {
-    lines.push(`🚓 פתיחת ניידת: ${n.opensNewCar ? 'כן' : 'לא'}`);
+  if (car) {
+    lines.push('🚓 פתיחת ניידת: כן – ניידת נוספת');
+    lines.push('', '➕ הניידת פועלת במקביל למשמרת ולא תופסת מקום רגיל.');
+  } else if (n.certification === 'LEVEL_B' || n.certification === 'LEVEL_C') {
+    lines.push('🚓 פתיחת ניידת: לא (מקום רגיל במשמרת)');
   }
   if (n.waitlisted) {
     lines.push('', '⏳ הסטטוס: ממתין/ה לשיבוץ (המשמרת מלאה או שהמקום שמור לנהג).');
