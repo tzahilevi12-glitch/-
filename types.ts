@@ -1,0 +1,153 @@
+export type Role = 'VOLUNTEER' | 'ADMIN';
+export type ShiftType = 'MORNING' | 'EVENING' | 'NIGHT';
+export type Badge = 'DRIVER_NEEDED' | 'OPEN_FOR_ALL' | 'FULL';
+/** Level B / Level C volunteers can open an additional patrol car: they may join full shifts. */
+export type Certification = 'NONE' | 'LEVEL_A' | 'LEVEL_B' | 'LEVEL_C';
+
+export interface Me {
+  id: string;
+  fullName: string;
+  role: Role;
+  hasDrivingChip: boolean;
+  certification: Certification;
+  isActive: boolean;
+}
+
+interface ShiftBase {
+  id: string;
+  date: string;
+  shiftType: ShiftType;
+  startTime: string;
+  endTime: string;
+  status: 'OPEN' | 'FILLED' | 'COMPLETED';
+  requiredDrivers: number;
+  maxVolunteers: number;
+  published: boolean;
+  seriesId: string | null;
+  notes: string | null;
+  badge: Badge;
+  driverAlert: 'GREEN' | 'RED';
+  seatsTaken: number;
+  extraVolunteers: number;
+  seatsLeft: number;
+  driversMissing: number;
+  driverOnly: boolean;
+}
+
+/** What a guest sees: shifts, staffing, counts and names — nothing personal, no actions. */
+/** A name on a shift roster, with what its badges need. */
+export interface RosterName {
+  fullName: string;
+  certification: Certification;
+  hasDrivingChip: boolean;
+  /** Registered as an extra patrol car (parallel to the regular slots). */
+  opensNewCar?: boolean;
+}
+
+export interface GuestShift extends ShiftBase {
+  registeredCount: number;
+  registeredNames: string[];
+  registeredPeople?: RosterName[];
+}
+
+export interface BoardShift extends ShiftBase {
+  myRegistration: { id: string; status: 'APPROVED' | 'PENDING'; opensNewCar: boolean; startTime: string; endTime: string } | null;
+  iHaveShiftThatDay: boolean;
+  /** Everyone on the shift (Level B/C included), in sign-up order. */
+  registeredCount: number;
+  registeredNames: string[];
+  registeredPeople?: RosterName[];
+}
+
+export interface MyShift {
+  registrationId: string;
+  shiftId: string;
+  status: 'APPROVED' | 'PENDING';
+  opensNewCar: boolean;
+  date: string;
+  shiftType: ShiftType;
+  shiftStartTime: string;
+  shiftEndTime: string;
+  startTime: string;
+  endTime: string;
+  isPartial: boolean;
+  /** FREE = more than 12 hours before the start (or waitlist); NEEDS_APPROVAL = cancel becomes a request. */
+  cancelMode: 'FREE' | 'NEEDS_APPROVAL';
+  /** Minutes left until the 12-hour mark, by the server clock at load time (0 = closed). */
+  freeCancelMinutesLeft: number;
+  /** A cancellation request is waiting for the commander. */
+  cancelRequestedAt: string | null;
+  /** The commander rejected the last cancellation request. */
+  cancelRejectedAt: string | null;
+}
+
+export interface CancelRequest {
+  registrationId: string;
+  shiftId: string;
+  date: string;
+  shiftType: ShiftType;
+  startTime: string;
+  endTime: string;
+  fullName: string;
+  hasDrivingChip: boolean;
+  certification: Certification;
+  opensNewCar: boolean;
+  registeredAt: string;
+  requestedAt: string;
+}
+
+export interface RosterPerson {
+  registrationId: string;
+  userId: string;
+  fullName: string;
+  hasDrivingChip: boolean;
+  certification: Certification;
+  /** Registered to open an additional patrol car (Level B/C). */
+  opensNewCar: boolean;
+  /** Asked to cancel 12 hours or less before the shift; still holds the seat until approved. */
+  cancelRequestedAt?: string | null;
+  startTime: string;
+  endTime: string;
+  isPartial: boolean;
+}
+
+export interface RosterShift extends ShiftBase {
+  approved: RosterPerson[];
+  waitlist: RosterPerson[];
+}
+
+export interface Week {
+  weekStart: string;
+  weekEnd: string;
+  draftCount: number;
+  publishedCount: number;
+  lastPublishedAt: string | null;
+  shifts: RosterShift[];
+}
+
+export interface Notification {
+  id: string;
+  kind: 'WEEK_PUBLISHED' | 'WEEK_UPDATED';
+  message: string;
+  shiftCount: number;
+  weekStart: string;
+  createdAt: string;
+}
+
+export interface StaffAlert {
+  id: string;
+  kind: 'VOLUNTEER_CANCELLED' | 'WAITLIST_LEFT';
+  message: string;
+  urgent: boolean;
+  createdAt: string;
+}
+
+export interface Volunteer {
+  id: string;
+  fullName: string;
+  hasDrivingChip: boolean;
+  certification: Certification;
+  isActive: boolean;
+  createdAt: string;
+  upcomingShifts: number;
+}

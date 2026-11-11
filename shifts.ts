@@ -1,0 +1,184 @@
+import { Router } from 'express';
+import { prisma } from '../lib/prisma.ts';
+import { ApiError } from '../lib/errors.ts';
+import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
+import { asBody, optBool, optEnum, optHHMM, optString } from '../lib/validate.ts';
+import { CERTIFICATIONS, absoluteMinute, addDays, canOpenPatrolCar, formatInterval, type Certification } from '../domain/registrationRules.ts';
+import { cancelRegistration, registerForShift, requestCancellation } from '../services/registrationService.ts';
+import { freeCancelMinutesLeft, minutesUntilStart, volunteerCancelMode } from '../domain/registrationRules.ts';
+import { endSession } from '../services/sessionService.ts';
+import { registrationInterval, staffingView, windowOf } from '../services/shiftState.ts';
+import { loadBoard } from '../services/boardService.ts';
+import { markAnnouncementsSeen, unseenAnnouncements, updateMyProfile } from '../services/userService.ts';
+
+export const shiftsRouter = Router();
+
+const hours = (f: { start: string; end: string }) => ({ startTime: f.start, endTime: f.end });
+
+/**
+ * GET /api/shifts — volunteer shift board.
+ * Published OPEN shifts that haven't ended, with a badge (DRIVER_NEEDED / OPEN_FOR_ALL),
+ * seats left, and whether the caller already has a shift that day.
+ * Level B/C volunteers also see FULL shifts, since they can join any shift.
+ * For transparency each shift also lists who is already on it (registeredNames, in
+ * sign-up order) and how many (registeredCount, Level B/C included).
+ */
+shiftsRouter.get('/', async (req, res) => {
+  const now = nowInStation();
+  const userId = req.user!.id;
+  const certified = canOpenPatrolCar(req.user!.certification as Certification);
+
+  const [board, mine] = await Promise.all([
+    loadBoard(certified),
+    prisma.shiftRegistration.findMany({
+      where: { userId, status: { in: ['APPROVED', 'PENDING'] }, shift: { date: { gte: fromIsoDate(addDays(now.date, -1)) } } },
+      select: { shift: { select: { date: true } } },
+    }),
+  ]);
+  const myDates = new Set(mine.map((r) => toIsoDate(r.shift.date)));
+
+  res.json({
+    shifts: board.map(({ shift, registrations, view }) => {
+      const own = registrations.find((r) => r.userId === userId);
+      return {
+        ...view,
+        myRegistration: own
+          ? { id: own.id, status: own.status, opensNewCar: own.opensNewCar, ...hours(formatInterval(registrationInterval(windowOf(shift), own))) }
+          : null,
+        iHaveShiftThatDay: myDates.has(toIsoDate(shift.date)),
+      };
+    }),
+  });
+});
+
+/**
+ * POST /api/shifts/:shiftId/registrations   body (optional): { "startTime": "16:00", "endTime": "20:00", "opensNewCar": true }
+ * opensNewCar (Level B/C only): opening an additional patrol car — allowed even when the shift is full.
+ * 201 = on the shift, 202 = waitlisted.
+ */
+shiftsRouter.post('/:shiftId/registrations', async (req, res) => {
+  const body = asBody(req.body);
+  const result = await registerForShift(req.user!.id, req.params.shiftId, {
+    startTime: optHHMM(body, 'startTime'),
+    endTime: optHHMM(body, 'endTime'),
+    opensNewCar: optBool(body, 'opensNewCar'),
+  });
+  res.status(result.waitlisted ? 202 : 201).json({
+    registration: {
+      id: result.registration.id,
+      shiftId: result.registration.shiftId,
+      status: result.registration.status,
+      opensNewCar: result.registration.opensNewCar,
+      ...result.hours,
+    },
+    message: result.message,
+    shift: staffingView(result.staffing),
+  });
+});
+
+/**
+ * DELETE /api/shifts/:shiftId/registrations/me
+ * Free cancellation: more than 12 hours before the volunteer's hours start (or leaving the waitlist).
+ * 12 hours or less → 409 CANCEL_NEEDS_APPROVAL; use the cancel-request route below.
+ * Always notifies the shift scheduler with a popup in the dashboard (alertSent: true).
+ */
+shiftsRouter.delete('/:shiftId/registrations/me', async (req, res) => {
+  const { registration, staffing, alertSent } = await cancelRegistration({
+    shiftId: req.params.shiftId,
+    userId: req.user!.id,
+    actorIsAdmin: false,
+  });
+  res.json({ registration: { id: registration.id, status: registration.status }, alertSent, shift: staffingView(staffing) });
+});
+
+/**
+ * POST /api/shifts/:shiftId/registrations/me/cancel-request
+ * 12 hours or less before the start: asks the commander to cancel. The seat stays taken until approved.
+ * → { outcome: "REQUESTED" }   (or { outcome: "CANCELLED" } if more than 12 hours were in fact still left)
+ */
+shiftsRouter.post('/:shiftId/registrations/me/cancel-request', async (req, res) => {
+  const r = await requestCancellation({ shiftId: req.params.shiftId, userId: req.user!.id });
+  res.json({ outcome: r.outcome, registration: { id: r.registration.id, status: r.registration.status } });
+});
+
+export const meRouter = Router();
+
+/** GET /api/me — profile. */
+meRouter.get('/', async (req, res) => {
+  res.json(req.user);
+});
+
+/** PATCH /api/me  { fullName?, hasDrivingChip?, certification? } */
+meRouter.patch('/', async (req, res) => {
+  const b = asBody(req.body);
+  const fullName = optString(b, 'fullName', 80)?.replace(/\s+/g, ' ');
+  if (fullName !== undefined && fullName.length < 2) throw new ApiError(400, 'VALIDATION', 'יש להזין שם מלא.');
+  res.json(
+    await updateMyProfile(req.user!.id, {
+      fullName,
+      hasDrivingChip: optBool(b, 'hasDrivingChip'),
+      certification: optEnum(b, 'certification', CERTIFICATIONS),
+    }),
+  );
+});
+
+/** POST /api/me/logout */
+meRouter.post('/logout', async (req, res) => {
+  if (req.sessionTokenHash) await endSession(req.sessionTokenHash);
+  res.status(204).end();
+});
+
+/** GET /api/me/shifts — dashboard: my upcoming shifts (on the shift + waitlisted). */
+meRouter.get('/shifts', async (req, res) => {
+  const now = nowInStation();
+  const nowAbs = absoluteMinute(now.date, now.minute);
+  const regs = await prisma.shiftRegistration.findMany({
+    where: {
+      userId: req.user!.id,
+      status: { in: ['APPROVED', 'PENDING'] },
+      shift: { date: { gte: fromIsoDate(addDays(now.date, -1)) }, status: { not: 'COMPLETED' } },
+    },
+    include: { shift: true },
+    orderBy: [{ shift: { date: 'asc' } }, { shift: { startTime: 'asc' } }],
+  });
+  const view = regs
+    .map((r) => {
+      const window = windowOf(r.shift);
+      const interval = registrationInterval(window, r);
+      return {
+        registrationId: r.id,
+        shiftId: r.shiftId,
+        status: r.status,
+        opensNewCar: r.opensNewCar,
+        date: toIsoDate(r.shift.date),
+        shiftType: r.shift.shiftType,
+        shiftStartTime: formatInterval(window).start,
+        shiftEndTime: formatInterval(window).end,
+        ...hours(formatInterval(interval)),
+        isPartial: interval.start !== window.start || interval.end !== window.end,
+        // 12-hour rule (by the station clock) and request state
+        cancelMode: volunteerCancelMode({ status: r.status, minutesToStart: minutesUntilStart(toIsoDate(r.shift.date), interval.start, now) }),
+        freeCancelMinutesLeft: freeCancelMinutesLeft(minutesUntilStart(toIsoDate(r.shift.date), interval.start, now)),
+        cancelRequestedAt: r.cancelRequestedAt,
+        cancelRejectedAt: r.cancelRejectedAt,
+        endsAt: absoluteMinute(toIsoDate(r.shift.date), interval.end),
+      };
+    })
+    .filter((r) => r.endsAt > nowAbs)
+    .map(({ endsAt: _endsAt, ...r }) => r);
+  res.json({
+    approved: view.filter((r) => r.status === 'APPROVED'),
+    waitlisted: view.filter((r) => r.status === 'PENDING'),
+  });
+});
+
+/** GET /api/me/notifications — "new shifts published" popups not yet dismissed. */
+meRouter.get('/notifications', async (req, res) => {
+  res.json({ notifications: await unseenAnnouncements(req.user!.id) });
+});
+
+/** POST /api/me/notifications/seen — dismiss the popup. */
+meRouter.post('/notifications/seen', async (req, res) => {
+  await markAnnouncementsSeen(req.user!.id);
+  res.status(204).end();
+});
