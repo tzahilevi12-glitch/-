@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, isIsoDate, todayInStation } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum } from '../lib/validate.ts';
-import { CERTIFICATIONS, addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
+import { CERTIFICATIONS, addDays, computeStaffing, formatInterval, isShortShift } from '../domain/registrationRules.ts';
 import {
   acknowledgeAlerts,
   adminApproveRegistration,
@@ -91,6 +91,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
           startTime: f.start,
           endTime: f.end,
           isPartial: interval.start !== window.start || interval.end !== window.end,
+          shortShift: isShortShift(interval, window),
           signedUpAt: r.createdAt,
           cancelRequestedAt: r.cancelRequestedAt,
         };

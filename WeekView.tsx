@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, toast, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, ShortShiftBadge, toast, useLoad } from '../ui.tsx';
 import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
@@ -40,6 +40,7 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
             <span className="cell-name-text">{p.fullName}</span>
             <CertMark certification={p.certification} compact />
             {p.hasDrivingChip && <DriverBadge compact />}
+            {p.shortShift && <ShortShiftBadge compact startTime={p.startTime} endTime={p.endTime} />}
             {p.cancelRequestedAt && (
               <span className="req-mark" title="ביקש/ה ביטול – ממתין לאישורך" aria-label="ביקש/ה ביטול">
                 <HourglassIcon size={13} />
@@ -62,6 +63,7 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
               <span className="cell-name-text">{p.fullName}</span>
               <CertMark certification={p.certification} compact />
               {p.hasDrivingChip && <DriverBadge compact />}
+            {p.shortShift && <ShortShiftBadge compact startTime={p.startTime} endTime={p.endTime} />}
               {p.cancelRequestedAt && (
                 <span className="req-mark" title="ביקש/ה ביטול – ממתין לאישורך" aria-label="ביקש/ה ביטול">
                   <HourglassIcon size={13} />

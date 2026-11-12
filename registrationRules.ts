@@ -111,6 +111,17 @@ export function meetsMinimumDuration(i: Interval, window: Interval): boolean {
   return i.end - i.start >= required;
 }
 
+/** Registrations shorter than this are flagged "משמרת מקוצרת" on every roster. */
+export const SHORT_SHIFT_MINUTES = 5 * 60;
+
+/**
+ * A short shift: the volunteer is not staying for the whole shift and their hours total less than
+ * 5 hours. Someone taking the whole of a (special) shift that is itself shorter is not flagged.
+ */
+export function isShortShift(i: Interval, window: Interval): boolean {
+  return !isWholeShift(i, window) && i.end - i.start < SHORT_SHIFT_MINUTES;
+}
+
 export function isWholeShift(i: Interval, window: Interval): boolean {
   return i.start === window.start && i.end === window.end;
 }

@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
-import { absoluteMinute, addDays, computeStaffing } from '../domain/registrationRules.ts';
-import { countSeats, shiftHeader, staffingView, windowOf } from './shiftState.ts';
+import { absoluteMinute, addDays, computeStaffing, formatInterval, isShortShift } from '../domain/registrationRules.ts';
+import { countSeats, registrationInterval, shiftHeader, staffingView, windowOf } from './shiftState.ts';
 
 /**
  * Published shifts that haven't ended yet, with staffing and who is on each shift.
@@ -31,6 +31,7 @@ export async function loadBoard(includeFull: boolean) {
     .filter((s) => absoluteMinute(toIsoDate(s.date), windowOf(s).end) > nowAbs)
     .map(({ registrations, ...shift }) => {
       const onShift = registrations.filter((r) => r.status === 'APPROVED');
+      const window = windowOf(shift);
       return {
         shift,
         registrations,
@@ -40,12 +41,20 @@ export async function loadBoard(includeFull: boolean) {
           registeredCount: onShift.length,
           registeredNames: onShift.map((r) => r.user.fullName),
           // Same people with their badges (qualification colour + driving chip) for the roster line.
-          registeredPeople: onShift.map((r) => ({
-            fullName: r.user.fullName,
-            certification: r.user.certification,
-            hasDrivingChip: r.user.hasDrivingChip,
-            opensNewCar: r.opensNewCar,
-          })),
+          registeredPeople: onShift.map((r) => {
+            const interval = registrationInterval(window, r);
+            const hours = formatInterval(interval);
+            return {
+              fullName: r.user.fullName,
+              certification: r.user.certification,
+              hasDrivingChip: r.user.hasDrivingChip,
+              opensNewCar: r.opensNewCar,
+              startTime: hours.start,
+              endTime: hours.end,
+              // "משמרת מקוצרת": partial hours totalling less than 5 hours (shown to everyone)
+              shortShift: isShortShift(interval, window),
+            };
+          }),
         },
       };
     });

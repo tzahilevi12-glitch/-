@@ -42,6 +42,10 @@ export interface RosterName {
   hasDrivingChip: boolean;
   /** Registered as an extra patrol car (parallel to the regular slots). */
   opensNewCar?: boolean;
+  startTime?: string;
+  endTime?: string;
+  /** "משמרת מקוצרת": partial hours totalling less than 5 hours. */
+  shortShift?: boolean;
 }
 
 export interface GuestShift extends ShiftBase {
@@ -106,6 +110,8 @@ export interface RosterPerson {
   opensNewCar: boolean;
   /** Asked to cancel 12 hours or less before the shift; still holds the seat until approved. */
   cancelRequestedAt?: string | null;
+  /** "משמרת מקוצרת": partial hours totalling less than 5 hours. */
+  shortShift?: boolean;
   startTime: string;
   endTime: string;
   isPartial: boolean;

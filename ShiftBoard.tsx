@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
-import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, ShortShiftBadge, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -114,6 +114,7 @@ export function ShiftBoard({
                                   {p.fullName}
                                   <CertMark certification={p.certification} />
                                   {p.hasDrivingChip && <DriverBadge compact />}
+                              {p.shortShift && <ShortShiftBadge startTime={p.startTime} endTime={p.endTime} />}
                                 </li>
                               ))}
                             </ul>
@@ -135,6 +136,7 @@ export function ShiftBoard({
                               {p.fullName}
                               <CertMark certification={p.certification} />
                               {p.hasDrivingChip && <DriverBadge compact />}
+                              {p.shortShift && <ShortShiftBadge startTime={p.startTime} endTime={p.endTime} />}
                             </li>
                           ))}
                         </ul>

@@ -14,6 +14,8 @@ import {
   type RegistrationContext,
   FREE_CANCEL_MINUTES,
   MIN_REGISTRATION_MINUTES,
+  SHORT_SHIFT_MINUTES,
+  isShortShift,
   meetsMinimumDuration,
   freeCancelMinutesLeft,
   minutesUntilStart,
@@ -254,4 +256,15 @@ test('minimum 3 hours: applies to partial hours and to extra patrol cars', () =>
   assert.equal((carTooShort as any).code, 'TOO_SHORT');
   assert.equal(decideRegistration({ ...base, requested: { startTime: '19:00', endTime: '22:00' } } as any).outcome, 'APPROVED');
   assert.equal(decideRegistration({ ...base, requested: { startTime: '19:00', endTime: '22:00', opensNewCar: true } } as any).outcome, 'APPROVED');
+});
+
+test('short shift flag: partial hours under 5 hours', () => {
+  assert.equal(SHORT_SHIFT_MINUTES, 300);
+  const evening = { start: 14 * 60 + 30, end: 22 * 60 };
+  assert.equal(isShortShift({ start: 19 * 60, end: 22 * 60 }, evening), true); // 3h
+  assert.equal(isShortShift({ start: 17 * 60 + 30, end: 22 * 60 }, evening), true); // 4.5h
+  assert.equal(isShortShift({ start: 17 * 60, end: 22 * 60 }, evening), false); // exactly 5h
+  assert.equal(isShortShift(evening, evening), false); // whole shift (7.5h)
+  const special = { start: 10 * 60, end: 14 * 60 }; // a 4-hour special shift taken whole
+  assert.equal(isShortShift(special, special), false);
 });

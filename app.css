@@ -760,3 +760,15 @@ button { font: inherit; color: inherit; }
 .min-error-sub { font-size: 0.85rem; margin-top: 2px; color: var(--ink); }
 @keyframes min-error-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .min-error { animation: none; } }
+
+/* ── Short shift (משמרת מקוצרת): under 5 hours ─────────────────────── */
+:root { --short: #6a3aa8; --short-50: #f3edfb; --short-line: #d6c4ef; }
+.short-badge {
+  display: inline-flex; align-items: center; gap: 4px; flex: none; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 999px;
+  color: var(--short); background: var(--short-50); box-shadow: inset 0 0 0 1px var(--short-line);
+}
+.short-badge-hours { font-weight: 600; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.short-badge.is-compact { font-size: 0.66rem; padding: 3px 6px; gap: 3px; }
+.people-item { flex-wrap: wrap; row-gap: 3px; }
+.people-item .short-badge { font-size: 0.66rem; padding: 3px 7px; }
