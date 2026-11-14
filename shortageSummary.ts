@@ -46,23 +46,29 @@ export function shiftLink(appUrl: string, shiftId: string): string {
   return `${appUrl.replace(/\/+$/, '')}/?shiftId=${encodeURIComponent(shiftId)}`;
 }
 
-/**
- * The full summary text. `items` may be in any order; full shifts (missing ≤ 0) are dropped.
- * With an app URL every shift gets its own direct sign-up link; without one, plain lines.
- */
-export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: string | null } = {}): string {
-  const open = items
+/** Open shifts only, sorted by day then start time. */
+function openSorted(items: ShortageItem[]): ShortageItem[] {
+  return items
     .filter((i) => i.missing > 0)
     .sort((a, b) => (a.date === b.date ? a.startMinute - b.startMinute : a.date < b.date ? -1 : 1));
+}
 
+/**
+ * Volunteers' version ("העתק חוסרים למתנדבים", also the automatic Telegram message): every open
+ * shift with how many are missing and its own direct sign-up link. `items` may be in any order;
+ * full shifts (missing ≤ 0) are dropped. Without an app URL the lines have no links.
+ */
+export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: string | null } = {}): string {
+  const open = openSorted(items);
+  const title = '🚔 *ריכוז משמרות פנויות לשבוע הקרוב:*';
   const link = opts.appUrl ? `להרשמה מהירה לחצו כאן: ${opts.appUrl}` : null;
   const driver = (i: ShortageItem) => (i.needsDriver ? ', דרוש נהג 🚗' : '');
 
   if (open.length === 0) {
-    return ['🚔 *ריכוז חוסרים במשמרות לשבוע הקרוב:*', '', '✅ כל המשמרות לשבוע הקרוב מאוישות. תודה לכולם! 🙏', ...(link ? ['', link] : [])].join('\n');
+    return [title, '', '✅ כל המשמרות לשבוע הקרוב מאוישות. תודה לכולם! 🙏', ...(link ? ['', link] : [])].join('\n');
   }
 
-  const lines = ['🚔 *ריכוז חוסרים במשמרות לשבוע הקרוב:*'];
+  const lines = [title];
   let day = '';
   for (const i of open) {
     if (i.date !== day) {
@@ -71,10 +77,30 @@ export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: st
     }
     lines.push(
       opts.appUrl
-        ? `• משמרת ${SHIFT_NAME[i.shiftType]} (${missingShort(i.missing)}${driver(i)}): להרשמה מהירה לחץ כאן -> ${shiftLink(opts.appUrl, i.shiftId)}`
+        ? `• משמרת ${SHIFT_NAME[i.shiftType]} (${missingShort(i.missing)}${driver(i)}): להרשמה -> ${shiftLink(opts.appUrl, i.shiftId)}`
         : `• משמרת ${SHIFT_NAME[i.shiftType]}: ${missingLabel(i.missing)}${i.needsDriver ? ' (דרוש נהג 🚗)' : ''}`,
     );
   }
+  return lines.join('\n');
+}
+
+/**
+ * Commander's version ("העתק סיכום חוסרים למפקד"): one line per day with the total number of
+ * volunteers missing across that day's shifts. No links. Days with nothing missing are left out;
+ * extra patrol cars never count (they are not in `missing`).
+ */
+export function formatCommanderSummary(items: ShortageItem[]): string {
+  const perDay = new Map<string, number>();
+  for (const i of openSorted(items)) perDay.set(i.date, (perDay.get(i.date) ?? 0) + i.missing);
+  const title = '📊 *סטטוס חוסרים שבועי (למפקד):*';
+  if (perDay.size === 0) return [title, '', '✅ אין חוסרים בשבוע הקרוב – כל המשמרות מאוישות.'].join('\n');
+  const lines = [title, ''];
+  let total = 0;
+  for (const [date, missing] of perDay) {
+    total += missing;
+    lines.push(`• ${summaryDayLabel(date)} - ${missingLabel(missing)}`);
+  }
+  lines.push('', `סה״כ השבוע: ${missingLabel(total)} ב-${perDay.size === 1 ? 'יום אחד' : `${perDay.size} ימים`}`);
   return lines.join('\n');
 }
 

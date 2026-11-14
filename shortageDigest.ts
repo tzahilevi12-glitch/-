@@ -72,7 +72,7 @@ export async function runShortageDigestIfDue(now = new Date()): Promise<DigestRe
     const claimed = await claim(station.date);
     if (!claimed) return { status: 'ALREADY_CLAIMED' };
 
-    const summary = await buildShortageSummary({ now });
+    const summary = await buildShortageSummary({ now, format: 'volunteers' });
     const ok = await sendTelegram(summary.text);
     if (!ok) {
       await release(claimed.previous, station.date); // try again at the next check

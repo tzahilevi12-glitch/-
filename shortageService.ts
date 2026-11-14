@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.ts';
 import { fromIsoDate, nowInStation, toIsoDate } from '../lib/dates.ts';
 import { absoluteMinute, addDays, computeStaffing } from '../domain/registrationRules.ts';
-import { formatShortageSummary, type ShortageItem, type SummaryShiftType } from '../domain/shortageSummary.ts';
+import { formatCommanderSummary, formatShortageSummary, type ShortageItem, type SummaryShiftType } from '../domain/shortageSummary.ts';
 import { countSeats, windowOf } from './shiftState.ts';
 
 /**
@@ -53,11 +53,19 @@ export async function loadShortages(now = new Date()): Promise<ShortageItem[]> {
   return items;
 }
 
-export async function buildShortageSummary(opts: { requestUrl?: string | null; now?: Date } = {}) {
+export type SummaryFormat = 'volunteers' | 'commander';
+
+/**
+ * volunteers: per shift with direct sign-up links (also the automatic Telegram message);
+ * commander: one line per day with the day's total missing, no links.
+ */
+export async function buildShortageSummary(opts: { requestUrl?: string | null; now?: Date; format?: SummaryFormat } = {}) {
   const items = await loadShortages(opts.now);
   const open = items.filter((i) => i.missing > 0);
   return {
-    text: formatShortageSummary(items, { appUrl: appUrl(opts.requestUrl) }),
+    format: opts.format ?? 'volunteers',
+    text: opts.format === 'commander' ? formatCommanderSummary(items) : formatShortageSummary(items, { appUrl: appUrl(opts.requestUrl) }),
+    daysWithShortage: new Set(open.map((i) => i.date)).size,
     shiftsWithShortage: open.length,
     missingTotal: open.reduce((n, i) => n + i.missing, 0),
   };

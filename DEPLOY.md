@@ -178,21 +178,33 @@ Open **Logs** on the `police-volunteers` service and look for lines starting wit
 
 ## Weekly shortage summary (ריכוז חוסרים) for WhatsApp
 
-### The copy button (works right away)
+### The two copy buttons (work right away)
 
-On the commander dashboard (`/#/commander`), click the green **העתק רשימת חוסרים לוואטסאפ** button. The site builds the list as it stands at that moment and copies it. Then open the volunteers' WhatsApp group and paste. The list covers:
+On the commander dashboard (`/#/commander`) there are two buttons side by side. Each builds the list for the next 7 days at that moment and copies it. Then paste it into WhatsApp.
 
-- every published shift in the next 7 days (today and the 6 days after)
-- that hasn't started yet
-- and still has empty regular places.
+- **העתק חוסרים למתנדבים** (green), for the volunteers' group: every shift that still has empty regular places, with how many are missing and its own sign-up link. Tapping a link opens the sign-up for exactly that shift, going through sign-in first if needed.
+  ```
+  🚔 *ריכוז משמרות פנויות לשבוע הקרוב:*
 
-Full shifts are left out, and extra patrol cars are never counted. Every shift line has its own link: tapping it opens the sign-up for exactly that shift, going through sign-in first if needed. A shift that still needs a driver is marked "(דרוש נהג 🚗)". The `*stars*` turn into **bold** in WhatsApp.
+  📅 *יום ראשון (15/11):*
+  • משמרת בוקר (חסרים 2): להרשמה -> https://…/?shiftId=…
+  • משמרת לילה (חסר 1): להרשמה -> https://…/?shiftId=…
+  ```
+- **העתק סיכום חוסרים למפקד** (navy), a short overview with no links: one line per day with that day's total missing, and a total at the end.
+  ```
+  📊 *סטטוס חוסרים שבועי (למפקד):*
 
-If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
+  • יום ראשון (15/11) - חסרים 3 מתנדבים
+  • יום שלישי (17/11) - חסרים 2 מתנדבים
+
+  סה״כ השבוע: חסרים 5 מתנדבים ב-2 ימים
+  ```
+
+Both cover published shifts in the next 7 days that haven't started yet. Full shifts and days are left out, and extra patrol cars never count. In the volunteers' list, a shift that still needs a driver says "דרוש נהג 🚗". The `*stars*` turn into **bold** in WhatsApp. If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
 
 ### Automatic message to Telegram every 2 days at 10:00
 
-The server sends the same list to the commanders' Telegram group (the one from the Telegram section above), so you can forward or copy it to WhatsApp. The stars show as-is in Telegram and become bold again once the text is in WhatsApp.
+The server sends the volunteers' list (with the sign-up links) to the commanders' Telegram group (the one from the Telegram section above), so you can forward or copy it to WhatsApp. The stars show as-is in Telegram and become bold again once the text is in WhatsApp.
 
 **Important (free Render plan):** the free plan puts the site to sleep after 15 minutes without visitors, and a sleeping site can't send anything. So a free outside service "knocks" on the site every morning to wake it up. Setting this up once takes about 5 minutes:
 

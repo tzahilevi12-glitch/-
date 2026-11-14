@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysBetween, formatShortageSummary, isDigestDue, missingLabel, shiftLink, summaryDayLabel } from './shortageSummary.ts';
+import { daysBetween, formatCommanderSummary, formatShortageSummary, isDigestDue, missingLabel, shiftLink, summaryDayLabel } from './shortageSummary.ts';
 
 test('summary: exact WhatsApp format with a direct link per shift, sorted, full shifts dropped', () => {
   const text = formatShortageSummary(
@@ -15,14 +15,14 @@ test('summary: exact WhatsApp format with a direct link per shift, sorted, full 
   assert.equal(
     text,
     [
-      '🚔 *ריכוז חוסרים במשמרות לשבוע הקרוב:*',
+      '🚔 *ריכוז משמרות פנויות לשבוע הקרוב:*',
       '',
       '📅 *יום ראשון (15/11):*',
-      '• משמרת בוקר (חסרים 2, דרוש נהג 🚗): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s1',
-      '• משמרת לילה (חסר 1): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s2',
+      '• משמרת בוקר (חסרים 2, דרוש נהג 🚗): להרשמה -> https://example.onrender.com/?shiftId=s1',
+      '• משמרת לילה (חסר 1): להרשמה -> https://example.onrender.com/?shiftId=s2',
       '',
       '📅 *יום שלישי (17/11):*',
-      '• משמרת צהריים (חסר 1): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s3',
+      '• משמרת צהריים (חסר 1): להרשמה -> https://example.onrender.com/?shiftId=s3',
     ].join('\n'),
   );
 });
@@ -54,4 +54,27 @@ test('schedule: every 2 days, from 10:00, never at night', () => {
   assert.equal(isDigestDue('2026-11-14', { date: '2026-11-16', minute: 21 * 60 }, o), false); // too late in the day
   assert.equal(isDigestDue('2026-11-14', { date: '2026-11-19', minute: 11 * 60 }, o), true); // missed days
   assert.equal(daysBetween('2026-11-30', '2026-12-02'), 2);
+});
+
+test('commander summary: one line per day, totals across shifts, no links, full days left out', () => {
+  const items = [
+    { shiftId: 'a', date: '2026-11-15', shiftType: 'MORNING' as const, startMinute: 360, missing: 2, needsDriver: true },
+    { shiftId: 'b', date: '2026-11-15', shiftType: 'NIGHT' as const, startMinute: 1290, missing: 1, needsDriver: false },
+    { shiftId: 'c', date: '2026-11-16', shiftType: 'MORNING' as const, startMinute: 360, missing: 0, needsDriver: false }, // full day
+    { shiftId: 'd', date: '2026-11-19', shiftType: 'EVENING' as const, startMinute: 870, missing: 1, needsDriver: false },
+    { shiftId: 'e', date: '2026-11-17', shiftType: 'EVENING' as const, startMinute: 870, missing: 2, needsDriver: false },
+  ];
+  assert.equal(
+    formatCommanderSummary(items),
+    [
+      '📊 *סטטוס חוסרים שבועי (למפקד):*',
+      '',
+      '• יום ראשון (15/11) - חסרים 3 מתנדבים',
+      '• יום שלישי (17/11) - חסרים 2 מתנדבים',
+      '• יום חמישי (19/11) - חסר מתנדב 1',
+      '',
+      'סה״כ השבוע: חסרים 6 מתנדבים ב-3 ימים',
+    ].join('\n'),
+  );
+  assert.match(formatCommanderSummary([]), /✅ אין חוסרים בשבוע הקרוב/);
 });
