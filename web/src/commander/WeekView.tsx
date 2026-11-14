@@ -6,6 +6,7 @@ import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, ShortShi
 import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShortagesButton } from './ShortagesButton.tsx';
+import { ManualRegisterDialog } from './ManualRegisterDialog.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
 const defaultStart: Record<ShiftType, string> = { MORNING: '06:00', EVENING: '14:30', NIGHT: '21:30' };
@@ -92,6 +93,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
   const { data: week, error, loading, reload } = useLoad(() => api<Week>(`/admin/weeks/${anchor}`), [anchor, refreshKey]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState<null | { date: string; shiftType: ShiftType } | 'week'>(null);
+  const [manual, setManual] = useState<null | { shiftId?: string }>(null);
   const [publishing, setPublishing] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -152,6 +154,10 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
         </p>
         <div className="week-actions">
           <ShortagesButton />
+          <button className="btn btn-manual" onClick={() => setManual({})}>
+            <PlusIcon size={17} strokeWidth={2.4} />
+            רשום מתנדב ידנית
+          </button>
           <button className="btn btn-ghost" onClick={() => setAdding('week')}>
             <PlusIcon size={17} />
             הוספת משמרות
@@ -247,7 +253,28 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
         <span className="pub-tag is-draft">טיוטה</span> לא גלוי למתנדבים
       </p>
 
-      {open && <ShiftPanel shift={open} onClose={() => setOpenId(null)} onChanged={onChanged ?? reload} />}
+      {open && (
+        <ShiftPanel
+          shift={open}
+          onClose={() => setOpenId(null)}
+          onChanged={onChanged ?? reload}
+          onManualRegister={() => {
+            setOpenId(null);
+            setManual({ shiftId: open.id });
+          }}
+        />
+      )}
+      {manual && (
+        <ManualRegisterDialog
+          shifts={week.shifts}
+          initialShiftId={manual.shiftId}
+          onClose={() => setManual(null)}
+          onDone={() => {
+            setManual(null);
+            (onChanged ?? reload)();
+          }}
+        />
+      )}
       {adding && (
         <AddShiftsDialog
           weekStart={week.weekStart}

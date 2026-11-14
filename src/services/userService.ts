@@ -4,7 +4,7 @@ import { addDays, type Certification } from '../domain/registrationRules.ts';
 import { fromIsoDate, todayInStation } from '../lib/dates.ts';
 import { rebalanceShift } from './registrationService.ts';
 
-const USER_VIEW = { id: true, fullName: true, role: true, hasDrivingChip: true, certification: true, isActive: true, createdAt: true } as const;
+const USER_VIEW = { id: true, fullName: true, phoneNumber: true, role: true, hasDrivingChip: true, certification: true, isActive: true, createdAt: true } as const;
 
 /** Upcoming = from yesterday (a NIGHT shift may still be running) and not completed. */
 const upcomingShift = () => ({ date: { gte: fromIsoDate(addDays(todayInStation(), -1)) }, status: { not: 'COMPLETED' as const } });

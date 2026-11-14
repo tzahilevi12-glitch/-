@@ -14,6 +14,7 @@ import {
   type Certification,
   type ShiftType,
   type Staffing,
+  decideAdminRegistration,
   minutesUntilStart,
   volunteerCancelMode,
 } from '../domain/registrationRules.ts';
@@ -98,7 +99,7 @@ export interface RequestedHours {
  * Volunteer signs up for a published shift, optionally for part of it.
  * Their driving-chip status is taken from their profile at this moment.
  */
-export async function registerForShift(userId: string, shiftId: string, hours: RequestedHours) {
+export async function registerForShift(userId: string, shiftId: string, hours: RequestedHours, opts: { byAdmin?: string } = {}) {
   // Filled inside the transaction; sent only after it has committed successfully.
   let notice: SignUpNotice | null = null;
   const result = await withSerializableTx(async (tx) => {
@@ -111,15 +112,17 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
     if (!loaded) throw new ApiError(404, 'SHIFT_NOT_FOUND', 'המשמרת לא נמצאה.');
     const { shift, window } = loaded;
 
-    const decision = decideRegistration({
+    if (opts.byAdmin && shift.status === 'CANCELLED') throw new ApiError(409, 'SHIFT_NOT_OPEN', 'המשמרת בוטלה.');
+    const ctx = {
       user: { ...user, certification: user.certification as Certification },
       shift: { ...shift, date: toIsoDate(shift.date), published: shift.publishedAt !== null, window },
       requested: hours,
       counts: loaded.counts,
       existingStatusOnShift: existing?.status ?? null,
       otherShiftDates: await otherShiftDates(tx, userId, shift.date, existing?.id),
-      now: nowInStation(),
-    });
+    };
+    // Commander's manual registration: same hour rules, but drafts/past shifts allowed and no waitlist.
+    const decision = opts.byAdmin ? decideAdminRegistration(ctx) : decideRegistration({ ...ctx, now: nowInStation() });
     if (decision.outcome === 'REJECTED') throw rejectionToError(decision.code, decision.message);
 
     const status = decision.outcome === 'APPROVED' ? 'APPROVED' : 'PENDING';
@@ -154,6 +157,7 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
       hasDrivingChip: user.hasDrivingChip,
       opensNewCar: hours.opensNewCar === true,
       waitlisted: decision.outcome === 'WAITLISTED',
+      addedBy: opts.byAdmin,
     };
     return {
       registration,
@@ -400,4 +404,48 @@ export async function acknowledgeAlerts(ids: string[], actorId: string) {
     data: { acknowledgedAt: new Date(), acknowledgedById: actorId },
   });
   return { acknowledged: count };
+}
+
+/**
+ * "רישום מתנדב ידני": the commander puts a volunteer on a shift — an existing volunteer, or a new
+ * one without a smartphone (created as a regular volunteer, so they appear in the volunteers list,
+ * on the board and in "מצטייני החודש"). If the registration is refused, a volunteer created for it
+ * is removed again, so a mistake leaves nothing behind.
+ */
+export async function adminManualRegister(input: {
+  adminName: string;
+  shiftId: string;
+  userId?: string;
+  newVolunteer?: { fullName: string; phoneNumber?: string; certification: Certification; hasDrivingChip: boolean };
+  startTime?: string;
+  endTime?: string;
+  opensNewCar?: boolean;
+}) {
+  let userId = input.userId;
+  let created = false;
+  if (!userId) {
+    if (!input.newVolunteer) throw new ApiError(400, 'VALIDATION', 'יש לבחור מתנדב או להזין פרטי מתנדב חדש.');
+    const u = await prisma.user.create({
+      data: { ...input.newVolunteer, phoneNumber: input.newVolunteer.phoneNumber || null, role: 'VOLUNTEER' },
+      select: { id: true },
+    });
+    userId = u.id;
+    created = true;
+  } else {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!u || u.role !== 'VOLUNTEER') throw new ApiError(404, 'USER_NOT_FOUND', 'המתנדב לא נמצא.');
+  }
+  const volunteerId = userId as string; // set above (existing or newly created)
+  try {
+    const r = await registerForShift(
+      volunteerId,
+      input.shiftId,
+      { startTime: input.startTime, endTime: input.endTime, opensNewCar: input.opensNewCar === true },
+      { byAdmin: input.adminName },
+    );
+    return { ...r, userId: volunteerId, createdVolunteer: created };
+  } catch (err) {
+    if (created) await prisma.user.delete({ where: { id: volunteerId } }).catch(() => undefined);
+    throw err;
+  }
 }

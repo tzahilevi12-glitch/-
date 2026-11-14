@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, isIsoDate, todayInStation } from '../lib/dates.ts';
-import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum } from '../lib/validate.ts';
+import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum, reqString } from '../lib/validate.ts';
 import { CERTIFICATIONS, addDays, computeStaffing, formatInterval, isShortShift } from '../domain/registrationRules.ts';
 import {
   acknowledgeAlerts,
   adminApproveRegistration,
+  adminManualRegister,
   cancelRegistration,
   decideCancelRequest,
   openAlerts,
@@ -114,6 +115,49 @@ adminRouter.post('/weeks/:date/publish', async (req, res) => {
 });
 
 /** PATCH /api/admin/registrations/:id  { "status": "APPROVED" | "CANCELLED" } */
+/**
+ * POST /api/admin/registrations/manual — "רישום מתנדב ידני"
+ *   { shiftId, userId }  or  { shiftId, newVolunteer: { fullName, phoneNumber?, certification, hasDrivingChip } }
+ *   + optional { startTime, endTime, opensNewCar }
+ * Same hour rules as a sign-up (3-hour minimum), one shift per day, Level B/C for an extra car;
+ * drafts and past shifts allowed, no waitlist. Sends the usual Telegram alert, marked as manual.
+ */
+adminRouter.post('/registrations/manual', async (req, res) => {
+  const b = asBody(req.body);
+  const shiftId = reqString(b, 'shiftId', 60);
+  const userId = optString(b, 'userId', 60);
+  let newVolunteer: Parameters<typeof adminManualRegister>[0]['newVolunteer'];
+  if (!userId) {
+    const n = asBody(b.newVolunteer);
+    const fullName = reqString(n, 'fullName', 80).replace(/\s+/g, ' ').trim();
+    if (fullName.length < 2) throw new ApiError(400, 'VALIDATION', 'יש להזין שם מלא.');
+    const phone = (optString(n, 'phoneNumber', 30) ?? '').trim();
+    if (phone && !/^[0-9+\-\s()]{7,20}$/.test(phone)) throw new ApiError(400, 'VALIDATION', 'מספר הטלפון לא תקין.');
+    newVolunteer = {
+      fullName,
+      phoneNumber: phone || undefined,
+      certification: optEnum(n, 'certification', CERTIFICATIONS) ?? 'NONE',
+      hasDrivingChip: optBool(n, 'hasDrivingChip') ?? false,
+    };
+  }
+  const r = await adminManualRegister({
+    adminName: req.user!.fullName,
+    shiftId,
+    userId,
+    newVolunteer,
+    startTime: optHHMM(b, 'startTime'),
+    endTime: optHHMM(b, 'endTime'),
+    opensNewCar: optBool(b, 'opensNewCar') ?? false,
+  });
+  res.status(201).json({
+    registration: { id: r.registration.id, status: r.registration.status },
+    userId: r.userId,
+    createdVolunteer: r.createdVolunteer,
+    hours: r.hours,
+    shift: staffingView(r.staffing),
+  });
+});
+
 adminRouter.patch('/registrations/:id', async (req, res) => {
   const status = reqEnum(asBody(req.body), 'status', ['APPROVED', 'CANCELLED'] as const);
   if (status === 'APPROVED') {

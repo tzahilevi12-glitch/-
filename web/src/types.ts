@@ -164,6 +164,7 @@ export interface StaffAlert {
 export interface Volunteer {
   id: string;
   fullName: string;
+  phoneNumber?: string | null;
   hasDrivingChip: boolean;
   certification: Certification;
   isActive: boolean;

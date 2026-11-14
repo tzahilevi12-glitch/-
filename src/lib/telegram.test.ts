@@ -131,3 +131,14 @@ test('hebrewDuration', () => {
   assert.equal(hebrewDuration(120), 'שעתיים');
   assert.equal(hebrewDuration(570), '9 שעות וחצי');
 });
+
+test('manual registration: marked with the commander who did it', () => {
+  const m = buildSignUpMessage({ ...base, addedBy: 'רס״ב כהן' });
+  const lines = m.split('\n');
+  assert.equal(lines[0], '🚨 הרשמה חדשה למשמרת!');
+  assert.equal(lines[1], '📝 רישום ידני ע״י מזין המשמרות: רס״ב כהן');
+  assert.match(m, /👤 מתנדב: דנה כהן/);
+  const short = buildSignUpMessage({ ...base, addedBy: 'רס״ב כהן', startTime: '18:30', endTime: '22:00', partial: true, short: true, durationMinutes: 210, shiftStartTime: '14:30', shiftEndTime: '22:00', shiftDurationMinutes: 450 });
+  assert.match(short, /^⚠️⚠️ שים לב: רישום למשמרת מקוצרת!/);
+  assert.match(short, /📝 רישום ידני ע״י מזין המשמרות: רס״ב כהן/);
+});

@@ -3,7 +3,7 @@ import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
 import { Avatar, CarIcon, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, ShortShiftBadge, TimeSelect, toast } from '../ui.tsx';
-import { CalendarIcon, CheckIcon, ClockIcon, HourglassIcon, ShiftTypeIcon, UsersIcon, XIcon } from '../icons.tsx';
+import { CalendarIcon, CheckIcon, ClockIcon, HourglassIcon, PlusIcon, ShiftTypeIcon, UsersIcon, XIcon } from '../icons.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
   return (
@@ -35,7 +35,17 @@ function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
   );
 }
 
-export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; onClose: () => void; onChanged: () => void }) {
+export function ShiftPanel({
+  shift,
+  onClose,
+  onChanged,
+  onManualRegister,
+}: {
+  shift: RosterShift;
+  onClose: () => void;
+  onChanged: () => void;
+  onManualRegister?: () => void;
+}) {
   const [form, setForm] = useState({
     startTime: shift.startTime,
     endTime: shift.endTime,
@@ -132,7 +142,15 @@ export function ShiftPanel({ shift, onClose, onChanged }: { shift: RosterShift; 
           />
         )}
 
-        <h3 className="sub-head">במשמרת</h3>
+        <div className="sub-head-row">
+          <h3 className="sub-head">במשמרת</h3>
+          {onManualRegister && (
+            <button className="btn btn-manual btn-sm" onClick={onManualRegister}>
+              <PlusIcon size={15} strokeWidth={2.4} />
+              רישום ידני למשמרת
+            </button>
+          )}
+        </div>
         {regular.length === 0 ? (
           <p className="muted small">עדיין אף אחד לא נרשם.</p>
         ) : (

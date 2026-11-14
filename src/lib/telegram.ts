@@ -47,6 +47,8 @@ export interface SignUpNotice {
   hasDrivingChip: boolean;
   opensNewCar: boolean;
   waitlisted: boolean;
+  /** Registered by hand by a commander (their name) */
+  addedBy?: string;
 }
 
 /** "יום ראשון, 8.11.2026" */
@@ -87,6 +89,7 @@ export function buildSignUpMessage(n: SignUpNotice): string {
     `👤 מתנדב: ${n.fullName}`,
     `📅 תאריך: ${hebrewDate(n.date)}`,
   );
+  if (n.addedBy) lines.splice(lines.length - 3, 0, `📝 רישום ידני ע״י מזין המשמרות: ${n.addedBy}`);
   if (short) {
     const full = n.shiftStartTime && n.shiftEndTime ? ` (${n.shiftStartTime}–${n.shiftEndTime})` : '';
     lines.push(`⏰ משמרת: ${SHIFT_NAME[n.shiftType]}${full}`);

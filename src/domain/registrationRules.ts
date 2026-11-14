@@ -251,6 +251,46 @@ export function decideRegistration(ctx: RegistrationContext): RegistrationDecisi
   return { outcome: 'APPROVED', interval };
 }
 
+/**
+ * The commander registers a volunteer by hand ("רישום מתנדב ידני"). Same hours rules as a
+ * volunteer sign-up (valid hours, 3-hour minimum), one shift per day, and the Level B/C rule for
+ * an extra patrol car. Differences, because it is the commander's own decision:
+ *  - unpublished and past shifts are allowed (e.g. recording someone who came without signing up);
+ *  - no waitlist: when the remaining seats are held for drivers, the commander may still place a
+ *    non-driver. A full shift is refused for a regular seat (raise the shift's places, or use an
+ *    extra patrol car).
+ */
+export function decideAdminRegistration(ctx: Omit<RegistrationContext, 'now'>): RegistrationDecision {
+  const { user, shift } = ctx;
+  if (!user.isActive) return reject('USER_INACTIVE', 'המתנדב מושהה. אפשר להפעיל אותו מחדש במסך "מתנדבים".');
+  if (ctx.existingStatusOnShift === 'APPROVED') return reject('ALREADY_REGISTERED', 'המתנדב כבר רשום למשמרת הזו.');
+  if (ctx.existingStatusOnShift === 'PENDING') {
+    return reject('ALREADY_REGISTERED', 'המתנדב כבר ברשימת ההמתנה של המשמרת. אפשר לאשר אותו מחלון המשמרת.');
+  }
+  const hours = resolveHours(shift.window, ctx.requested.startTime, ctx.requested.endTime);
+  if (!hours.ok) return reject('INVALID_HOURS', hours.message);
+  const interval = hours.interval;
+  if (!meetsMinimumDuration(interval, shift.window)) return reject('TOO_SHORT', MIN_DURATION_MESSAGE);
+  if (ctx.otherShiftDates.includes(shift.date)) {
+    return reject('ONE_SHIFT_PER_DAY', 'למתנדב כבר יש משמרת ביום הזה. אפשר משמרת אחת ביום.');
+  }
+  if (ctx.requested.opensNewCar) {
+    if (!canOpenPatrolCar(user.certification)) {
+      return reject('NOT_QUALIFIED_FOR_CAR', "ניידת נוספת מותרת רק למוסמכי שלב ב' או שלב ג'.");
+    }
+    return { outcome: 'APPROVED', interval };
+  }
+  if (computeStaffing(shift, ctx.counts).isFull) {
+    return reject(
+      'SHIFT_FULL',
+      canOpenPatrolCar(user.certification)
+        ? 'המשמרת מלאה. אפשר לרשום את המתנדב כניידת נוספת, או להגדיל את מספר המקומות במשמרת.'
+        : 'המשמרת מלאה. אפשר להגדיל את מספר המקומות במשמרת ואז לרשום.',
+    );
+  }
+  return { outcome: 'APPROVED', interval };
+}
+
 export function nextShiftStatus(current: ShiftStatus, staffing: Staffing): ShiftStatus {
   if (current === 'COMPLETED') return current;
   return staffing.isFull ? 'FILLED' : 'OPEN';

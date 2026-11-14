@@ -13,6 +13,7 @@ import {
   weekStartOf,
   type RegistrationContext,
   FREE_CANCEL_MINUTES,
+  decideAdminRegistration,
   MIN_REGISTRATION_MINUTES,
   SHORT_SHIFT_MINUTES,
   isShortShift,
@@ -267,4 +268,27 @@ test('short shift flag: partial hours under 5 hours', () => {
   assert.equal(isShortShift(evening, evening), false); // whole shift (7.5h)
   const special = { start: 10 * 60, end: 14 * 60 }; // a 4-hour special shift taken whole
   assert.equal(isShortShift(special, special), false);
+});
+
+test('manual registration by the commander', () => {
+  const evening = { start: 14 * 60 + 30, end: 22 * 60 };
+  const base = {
+    user: { isActive: true, hasDrivingChip: false, certification: 'NONE' as const },
+    shift: { requiredDrivers: 1, maxVolunteers: 2, date: '2026-11-05', status: 'OPEN' as const, published: false, window: evening },
+    counts: { approvedTotal: 1, approvedDrivers: 0, approvedExtra: 0 },
+    existingStatusOnShift: null,
+    otherShiftDates: [],
+    requested: {},
+  };
+  const c = (o: any) => (decideAdminRegistration({ ...base, ...o } as any) as any).code ?? decideAdminRegistration({ ...base, ...o } as any).outcome;
+  // past + unpublished draft, last seat held for a driver, non-driver → still placed (commander decides)
+  assert.equal(c({}), 'APPROVED');
+  assert.equal(c({ requested: { startTime: '20:00', endTime: '22:00' } }), 'TOO_SHORT');
+  assert.equal(c({ otherShiftDates: ['2026-11-05'] }), 'ONE_SHIFT_PER_DAY');
+  assert.equal(c({ existingStatusOnShift: 'APPROVED' }), 'ALREADY_REGISTERED');
+  assert.equal(c({ user: { ...base.user, isActive: false } }), 'USER_INACTIVE');
+  const full = { counts: { approvedTotal: 2, approvedDrivers: 1, approvedExtra: 0 } };
+  assert.equal(c(full), 'SHIFT_FULL');
+  assert.equal(c({ ...full, requested: { opensNewCar: true } }), 'NOT_QUALIFIED_FOR_CAR');
+  assert.equal(c({ ...full, user: { ...base.user, certification: 'LEVEL_B' }, requested: { opensNewCar: true } }), 'APPROVED');
 });
