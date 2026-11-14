@@ -39,7 +39,7 @@ const LABEL: Record<Format, string> = {
 /**
  * Two copy buttons, side by side:
  *  - "העתק חוסרים למתנדבים": every open shift with its own sign-up link (for the volunteers' group);
- *  - "העתק סיכום חוסרים למפקד": one line per day with the day's total missing, no links.
+ *  - "העתק סיכום חוסרים למפקד": one short line per open shift (day, shift, missing), no links.
  * Each click builds the live text for the next 7 days on the server and copies it. The text is
  * requested inside the click itself (ClipboardItem with a pending value), so Safari/iPhone also
  * allow the copy. If the browser still refuses, the text opens in a window with its own button.
@@ -52,9 +52,7 @@ export function ShortagesButton() {
     const detail =
       s.missingTotal === 0
         ? 'אין חוסרים בשבוע הקרוב.'
-        : format === 'commander'
-          ? `${s.daysWithShortage} ימים עם חוסרים.`
-          : `${s.shiftsWithShortage} משמרות פנויות.`;
+        : `${s.shiftsWithShortage} משמרות עם חוסרים.`;
     toast(`הועתק ללוח בהצלחה! ${detail} אפשר להדביק בוואטסאפ.`);
   }
 
@@ -88,7 +86,7 @@ export function ShortagesButton() {
         <ChatIcon size={17} />
         {busy === 'volunteers' ? 'מכינים…' : LABEL.volunteers}
       </button>
-      <button className="btn btn-commander-copy" onClick={() => copy('commander')} disabled={busy !== null} title="שורה לכל יום עם סך החוסרים, בלי קישורים">
+      <button className="btn btn-commander-copy" onClick={() => copy('commander')} disabled={busy !== null} title="שורה לכל משמרת חסרה: יום, משמרת וכמה חסרים – בלי קישורים">
         <ClipboardIcon size={17} />
         {busy === 'commander' ? 'מכינים…' : LABEL.commander}
       </button>

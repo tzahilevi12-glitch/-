@@ -190,14 +190,13 @@ On the commander dashboard (`/#/commander`) there are two buttons side by side. 
   • משמרת בוקר (חסרים 2): להרשמה -> https://…/?shiftId=…
   • משמרת לילה (חסר 1): להרשמה -> https://…/?shiftId=…
   ```
-- **העתק סיכום חוסרים למפקד** (navy), a short overview with no links: one line per day with that day's total missing, and a total at the end.
+- **העתק סיכום חוסרים למפקד** (navy), short and to the point, no links: one line per shift that still needs volunteers.
   ```
-  📊 *סטטוס חוסרים שבועי (למפקד):*
+  📊 *חוסרים במשמרות (עדכון למפקד):*
 
-  • יום ראשון (15/11) - חסרים 3 מתנדבים
-  • יום שלישי (17/11) - חסרים 2 מתנדבים
-
-  סה״כ השבוע: חסרים 5 מתנדבים ב-2 ימים
+  • יום ראשון (15/11) | משמרת בוקר - חסרים 2
+  • יום ראשון (15/11) | משמרת לילה - חסר 1
+  • יום שלישי (17/11) | משמרת צהריים - חסרים 2
   ```
 
 Both cover published shifts in the next 7 days that haven't started yet. Full shifts and days are left out, and extra patrol cars never count. In the volunteers' list, a shift that still needs a driver says "דרוש נהג 🚗". The `*stars*` turn into **bold** in WhatsApp. If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.

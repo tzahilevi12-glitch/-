@@ -56,25 +56,22 @@ test('schedule: every 2 days, from 10:00, never at night', () => {
   assert.equal(daysBetween('2026-11-30', '2026-12-02'), 2);
 });
 
-test('commander summary: one line per day, totals across shifts, no links, full days left out', () => {
+test('commander summary: one line per open shift — day, shift, missing; no links, full shifts left out', () => {
   const items = [
-    { shiftId: 'a', date: '2026-11-15', shiftType: 'MORNING' as const, startMinute: 360, missing: 2, needsDriver: true },
+    { shiftId: 'e', date: '2026-11-17', shiftType: 'EVENING' as const, startMinute: 870, missing: 2, needsDriver: true },
     { shiftId: 'b', date: '2026-11-15', shiftType: 'NIGHT' as const, startMinute: 1290, missing: 1, needsDriver: false },
-    { shiftId: 'c', date: '2026-11-16', shiftType: 'MORNING' as const, startMinute: 360, missing: 0, needsDriver: false }, // full day
-    { shiftId: 'd', date: '2026-11-19', shiftType: 'EVENING' as const, startMinute: 870, missing: 1, needsDriver: false },
-    { shiftId: 'e', date: '2026-11-17', shiftType: 'EVENING' as const, startMinute: 870, missing: 2, needsDriver: false },
+    { shiftId: 'a', date: '2026-11-15', shiftType: 'MORNING' as const, startMinute: 360, missing: 2, needsDriver: true },
+    { shiftId: 'c', date: '2026-11-16', shiftType: 'MORNING' as const, startMinute: 360, missing: 0, needsDriver: false }, // full
   ];
   assert.equal(
     formatCommanderSummary(items),
     [
-      '📊 *סטטוס חוסרים שבועי (למפקד):*',
+      '📊 *חוסרים במשמרות (עדכון למפקד):*',
       '',
-      '• יום ראשון (15/11) - חסרים 3 מתנדבים',
-      '• יום שלישי (17/11) - חסרים 2 מתנדבים',
-      '• יום חמישי (19/11) - חסר מתנדב 1',
-      '',
-      'סה״כ השבוע: חסרים 6 מתנדבים ב-3 ימים',
+      '• יום ראשון (15/11) | משמרת בוקר - חסרים 2',
+      '• יום ראשון (15/11) | משמרת לילה - חסר 1',
+      '• יום שלישי (17/11) | משמרת צהריים - חסרים 2',
     ].join('\n'),
   );
-  assert.match(formatCommanderSummary([]), /✅ אין חוסרים בשבוע הקרוב/);
+  assert.equal(formatCommanderSummary([]), '📊 *חוסרים במשמרות (עדכון למפקד):*\n\n✅ אין חוסרים בשבוע הקרוב.');
 });
