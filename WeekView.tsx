@@ -5,6 +5,7 @@ import { SHIFT_LABEL, SHIFT_TYPES, addDays, range, shortDay, todayLocal, weekRan
 import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, ShortShiftBadge, toast, useLoad } from '../ui.tsx';
 import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
+import { ShortagesButton } from './ShortagesButton.tsx';
 import { ShiftPanel } from './ShiftPanel.tsx';
 
 const defaultStart: Record<ShiftType, string> = { MORNING: '06:00', EVENING: '14:30', NIGHT: '21:30' };
@@ -150,6 +151,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
           {waiting > 0 && <span> {waiting === 1 ? 'מתנדב אחד ממתין לאישור.' : `${waiting} ממתינים לאישור.`}</span>}
         </p>
         <div className="week-actions">
+          <ShortagesButton />
           <button className="btn btn-ghost" onClick={() => setAdding('week')}>
             <PlusIcon size={17} />
             הוספת משמרות

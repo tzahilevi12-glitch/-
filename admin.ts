@@ -24,6 +24,7 @@ import {
   type ShiftFields,
 } from '../services/shiftAdminService.ts';
 import { adminUpdateUser, listVolunteers } from '../services/userService.ts';
+import { buildShortageSummary } from '../services/shortageService.ts';
 import { countSeats, registrationInterval, shiftHeader, staffingView, windowOf } from '../services/shiftState.ts';
 
 export const adminRouter = Router();
@@ -143,6 +144,16 @@ adminRouter.post('/registrations/:id/cancel-request', async (req, res) => {
 // ───────────────────────── scheduler alerts ─────────────────────────
 
 /** GET /api/admin/alerts — cancellations not yet acknowledged (shown as a popup). */
+/**
+ * GET /api/admin/shortages — the live "ריכוז חוסרים" text for the next 7 days, ready for WhatsApp.
+ * → { text, shiftsWithShortage, missingTotal }
+ */
+adminRouter.get('/shortages', async (req, res) => {
+  const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0].trim();
+  const host = req.get('x-forwarded-host') ?? req.get('host');
+  res.json(await buildShortageSummary({ requestUrl: host ? `${proto}://${host}` : null }));
+});
+
 adminRouter.get('/alerts', async (_req, res) => {
   res.json({ alerts: await openAlerts() });
 });

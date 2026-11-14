@@ -772,3 +772,12 @@ button { font: inherit; color: inherit; }
 .short-badge.is-compact { font-size: 0.66rem; padding: 3px 6px; gap: 3px; }
 .people-item { flex-wrap: wrap; row-gap: 3px; }
 .people-item .short-badge { font-size: 0.66rem; padding: 3px 7px; }
+
+/* ── Shortage summary for WhatsApp ───────────────────────────── */
+.btn-whatsapp { background: #128c4a; color: #fff; box-shadow: 0 1px 2px rgba(10, 70, 37, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.btn-whatsapp:hover:not(:disabled) { background: #0d7a3f; }
+.shortage-text {
+  width: 100%; margin-top: 10px; padding: 12px; font: inherit; font-size: 0.9rem; line-height: 1.5;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); color: var(--ink); resize: vertical;
+}
+.week-actions { flex-wrap: wrap; }

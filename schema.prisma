@@ -173,3 +173,11 @@ model StaffAlert {
 
   @@index([acknowledgedAt, createdAt])
 }
+
+/// Bookkeeping for automatic jobs, so a restart or a second trigger never sends twice.
+/// name "shortage-digest": the station date (YYYY-MM-DD) the shortage summary was last sent to Telegram.
+model ScheduledJob {
+  name        String   @id
+  lastRunDate String
+  updatedAt   DateTime @updatedAt
+}

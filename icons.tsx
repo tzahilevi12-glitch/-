@@ -284,3 +284,10 @@ export const CarFrontIcon = (p: IconProps) => (
     <path d="M19 18v2" />
   </Icon>
 );
+
+/** Message bubble (Lucide "message-circle") — copy for the volunteers' chat group. */
+export const ChatIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+  </Icon>
+);

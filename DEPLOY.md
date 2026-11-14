@@ -107,6 +107,25 @@ Every time a volunteer signs up for a shift, the bot sends a message to a Telegr
 
 The "פתיחת ניידת" line appears only for Level B/C volunteers. Partial hours and waitlist sign-ups are marked in the message.
 
+If the sign-up is a **short shift** (part of a shift, under 5 hours), the message starts with a loud warning and gives the exact hours and length:
+
+```
+⚠️⚠️ שים לב: רישום למשמרת מקוצרת! ⚠️⚠️
+⏱️ 3 שעות וחצי בלבד – לא משמרת מלאה
+━━━━━━━━━━━━━━━
+🚨 הרשמה חדשה למשמרת!
+
+👤 מתנדב: דנה כהן
+📅 תאריך: יום חמישי, 12.11.2026
+⏰ משמרת: צהריים (14:30–22:00)
+⏱️ שעות המתנדב: 18:30–22:00 בלבד
+⌛ משך: 3 שעות וחצי מתוך 7 שעות וחצי של המשמרת
+🎓 הסמכה: שלב א׳
+🔑 צ'יפ נהיגה: יש
+
+❗ המתנדב/ת לא מכסה את כל שעות המשמרת – יש לוודא כיסוי לשאר השעות.
+```
+
 This is optional and safe. If the two settings below are missing or wrong, or Telegram is down, the volunteer is still signed up normally. The bot just doesn't send anything, and the reason is written in the Render **Logs**.
 
 ### Step 1: Create the bot with BotFather
@@ -156,3 +175,56 @@ Open **Logs** on the `police-volunteers` service and look for lines starting wit
 - `HTTP 401`: the token is wrong. Copy it again from BotFather.
 - `HTTP 400 ... chat not found`: the Chat ID is wrong (check the minus sign), or the bot isn't in the group.
 - `HTTP 403 ... bot was kicked`: the bot was removed from the group. Add it again.
+
+## Weekly shortage summary (ריכוז חוסרים) for WhatsApp
+
+### The copy button (works right away)
+
+On the commander dashboard (`/#/commander`), click the green **העתק רשימת חוסרים לוואטסאפ** button. The site builds the list as it stands at that moment and copies it. Then open the volunteers' WhatsApp group and paste. The list covers:
+
+- every published shift in the next 7 days (today and the 6 days after)
+- that hasn't started yet
+- and still has empty regular places.
+
+Full shifts are left out, and extra patrol cars are never counted. A shift that still needs a driver is marked "(דרוש נהג 🚗)". The `*stars*` turn into **bold** in WhatsApp.
+
+If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
+
+### Automatic message to Telegram every 2 days at 10:00
+
+The server sends the same list to the commanders' Telegram group (the one from the Telegram section above), so you can forward or copy it to WhatsApp. The stars show as-is in Telegram and become bold again once the text is in WhatsApp.
+
+**Important (free Render plan):** the free plan puts the site to sleep after 15 minutes without visitors, and a sleeping site can't send anything. So a free outside service "knocks" on the site every morning to wake it up. Setting this up once takes about 5 minutes:
+
+**Step 1: Choose a secret key and add it in Render**
+1. Make up a long random key from English letters and digits, at least 20 characters, for example `k7Qm2xPz9vLr4tWn8cYb`.
+2. In Render, open the **police-volunteers** web service → **Environment** → **Add Environment Variable**.
+3. Key: `CRON_SECRET`, Value: your key. Click **Save** and choose the option that also deploys.
+
+**Step 2: Create the daily wake-up at cron-job.org (free)**
+1. Go to https://cron-job.org and sign up (free).
+2. Click **Create cronjob**.
+3. **Title:** `ריכוז חוסרים`
+4. **URL:** your site address, followed by the wake-up path and your key:
+   `https://YOUR-SITE.onrender.com/api/public/cron/shortage-digest?key=YOUR_KEY`
+   Replace `YOUR-SITE` with your Render address and `YOUR_KEY` with the key from step 1.
+5. **Execution schedule:** every day at **10:00**, and set the time zone to **Asia/Jerusalem**.
+6. Click **Create**.
+
+The site is called every day, but it sends the list only **every 2 days**. It remembers the last send in the database, so it never sends twice.
+
+**How to check it works**
+- In Render → **Logs**, after the next start you should see `Shortage summary to Telegram: every 2 days from 10:00`.
+- On a day it sends, you'll see `[shortage-digest] sent (...)`, and the list appears in the Telegram group.
+- The first call of the morning may show as "failed" or "timeout" at cron-job.org, because waking the site takes about a minute. That's fine: the site wakes up and sends the list within a few minutes anyway.
+
+**Optional settings** (Render → Environment):
+
+| Key | Default | What it does |
+|---|---|---|
+| `SHORTAGE_DIGEST` | `on` | `off` stops the automatic Telegram message (the copy button keeps working) |
+| `SHORTAGE_DIGEST_HOUR` | `10` | Earliest hour of the day to send. If the site was asleep, it sends when it wakes, until 21:00 |
+| `SHORTAGE_DIGEST_EVERY_DAYS` | `2` | Days between messages |
+| `APP_URL` | your Render address | The sign-up link at the bottom of the list, if you use your own domain |
+
+On a paid Render plan ("Starter"), the site never sleeps and sends on time by itself. Step 2 then isn't needed, but it doesn't hurt.

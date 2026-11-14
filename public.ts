@@ -4,6 +4,8 @@ import { asBody, optEnum, reqString } from '../lib/validate.ts';
 import { enterAsCommander, enterAsVolunteer } from '../services/sessionService.ts';
 import { CERTIFICATIONS } from '../domain/registrationRules.ts';
 import { guestBoard } from '../services/boardService.ts';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { runShortageDigestIfDue } from '../services/shortageDigest.ts';
 
 export const publicRouter = Router();
 
@@ -37,3 +39,21 @@ publicRouter.post('/commander', async (req, res) => {
 publicRouter.get('/board', async (_req, res) => {
   res.json({ shifts: await guestBoard() });
 });
+
+/**
+ * GET or POST /api/public/cron/shortage-digest?key=CRON_SECRET
+ * Wake-up link for a free external scheduler (cron-job.org), called once a day at 10:00.
+ * It wakes the sleeping server and sends the shortage summary to Telegram if it is due
+ * (every 2 days). Calling it more often is harmless: it never sends twice in one period.
+ * Disabled (404) until CRON_SECRET is set.
+ */
+async function cronShortageDigest(req: import('express').Request, res: import('express').Response) {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) throw new ApiError(404, 'NOT_FOUND', 'לא נמצא.');
+  const given = typeof req.query.key === 'string' ? req.query.key : '';
+  const h = (v: string) => createHash('sha256').update(v).digest();
+  if (!timingSafeEqual(h(given), h(secret))) throw new ApiError(403, 'FORBIDDEN', 'מפתח שגוי.');
+  res.json(await runShortageDigestIfDue());
+}
+publicRouter.get('/cron/shortage-digest', cronShortageDigest);
+publicRouter.post('/cron/shortage-digest', cronShortageDigest);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSignUpMessage, sendTelegram, telegramConfig, type SignUpNotice } from './telegram.ts';
+import { buildSignUpMessage, hebrewDuration, sendTelegram, telegramConfig, type SignUpNotice } from './telegram.ts';
 
 const base: SignUpNotice = {
   fullName: 'דנה כהן',
@@ -88,4 +88,46 @@ test('send: never throws — missing config, HTTP error, network error', async (
     console.error = origErr;
     console.warn = origWarn;
   }
+});
+
+test('short shift (under 5 hours): loud banner on top, exact hours and duration', () => {
+  const m = buildSignUpMessage({
+    ...base,
+    startTime: '18:30',
+    endTime: '22:00',
+    partial: true,
+    short: true,
+    durationMinutes: 210,
+    shiftStartTime: '14:30',
+    shiftEndTime: '22:00',
+    shiftDurationMinutes: 450,
+  });
+  const lines = m.split('\n');
+  assert.equal(lines[0], '⚠️⚠️ שים לב: רישום למשמרת מקוצרת! ⚠️⚠️');
+  assert.equal(lines[1], '⏱️ 3 שעות וחצי בלבד – לא משמרת מלאה');
+  assert.match(m, /🚨 הרשמה חדשה למשמרת!/);
+  assert.match(m, /⏰ משמרת: צהריים \(14:30–22:00\)/);
+  assert.match(m, /⏱️ שעות המתנדב: 18:30–22:00 בלבד/);
+  assert.match(m, /⌛ משך: 3 שעות וחצי מתוך 7 שעות וחצי של המשמרת/);
+  assert.match(m, /❗ המתנדב\/ת לא מכסה את כל שעות המשמרת/);
+});
+
+test('short shift also highlighted for an extra patrol car; 5+ hours partial is not', () => {
+  const car = buildSignUpMessage({ ...base, certification: 'LEVEL_C', opensNewCar: true, startTime: '06:00', endTime: '10:00', partial: true, short: true, durationMinutes: 240, shiftStartTime: '06:00', shiftEndTime: '15:00', shiftDurationMinutes: 540, shiftType: 'MORNING' });
+  assert.match(car, /^⚠️⚠️ שים לב: רישום למשמרת מקוצרת!/);
+  assert.match(car, /🚓🚓 ניידת נוספת למשמרת!/);
+  assert.match(car, /4 שעות מתוך 9 שעות/);
+  const five = buildSignUpMessage({ ...base, startTime: '17:00', endTime: '22:00', partial: true, short: false, durationMinutes: 300 });
+  assert.match(five, /^🚨 הרשמה חדשה למשמרת!/);
+  assert.doesNotMatch(five, /מקוצרת/);
+  assert.match(five, /צהריים \(17:00–22:00, שעות חלקיות\)/);
+});
+
+test('hebrewDuration', () => {
+  assert.equal(hebrewDuration(180), '3 שעות');
+  assert.equal(hebrewDuration(210), '3 שעות וחצי');
+  assert.equal(hebrewDuration(255), '4 שעות ורבע');
+  assert.equal(hebrewDuration(250), '4 שעות ו-10 דקות');
+  assert.equal(hebrewDuration(120), 'שעתיים');
+  assert.equal(hebrewDuration(570), '9 שעות וחצי');
 });

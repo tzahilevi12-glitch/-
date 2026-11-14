@@ -34,6 +34,15 @@ export interface SignUpNotice {
   endTime: string;
   /** true when the volunteer chose only part of the shift */
   partial: boolean;
+  /** "משמרת מקוצרת": partial hours totalling less than 5 hours */
+  short?: boolean;
+  /** Length of the volunteer's own hours, in minutes */
+  durationMinutes?: number;
+  /** The full shift's hours, e.g. "14:30" – "22:00" (for comparison in short-shift alerts) */
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+  /** Length of the full shift, in minutes */
+  shiftDurationMinutes?: number;
   certification: Certification;
   hasDrivingChip: boolean;
   opensNewCar: boolean;
@@ -47,10 +56,28 @@ export function hebrewDate(isoDate: string): string {
   return `${weekday}, ${d.getUTCDate()}.${d.getUTCMonth() + 1}.${d.getUTCFullYear()}`;
 }
 
+/** "3 שעות וחצי", "4 שעות ורבע", "שעתיים", "4 שעות ו-10 דקות" */
+export function hebrewDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h === 0 ? '' : h === 1 ? 'שעה' : h === 2 ? 'שעתיים' : `${h} שעות`;
+  if (m === 0) return hours;
+  if (!hours) return `${m} דקות`;
+  if (m === 30) return `${hours} וחצי`;
+  if (m === 15) return `${hours} ורבע`;
+  return `${hours} ו-${m} דקות`;
+}
+
 /** The Hebrew message text (plain text — no Markdown, so names can never break the formatting). */
 export function buildSignUpMessage(n: SignUpNotice): string {
   const car = n.opensNewCar && (n.certification === 'LEVEL_B' || n.certification === 'LEVEL_C');
-  const lines = [
+  const short = n.short === true && typeof n.durationMinutes === 'number';
+  const lines: string[] = [];
+  // Short shift: a loud banner on top, so commanders see at once that the shift is not fully covered.
+  if (short) {
+    lines.push('⚠️⚠️ שים לב: רישום למשמרת מקוצרת! ⚠️⚠️', `⏱️ ${hebrewDuration(n.durationMinutes!)} בלבד – לא משמרת מלאה`, '━━━━━━━━━━━━━━━');
+  }
+  lines.push(
     car
       ? '🚓🚓 ניידת נוספת למשמרת! 🚓🚓'
       : n.waitlisted
@@ -59,10 +86,20 @@ export function buildSignUpMessage(n: SignUpNotice): string {
     '',
     `👤 מתנדב: ${n.fullName}`,
     `📅 תאריך: ${hebrewDate(n.date)}`,
-    `⏰ משמרת: ${SHIFT_NAME[n.shiftType]} (${n.startTime}–${n.endTime}${n.partial ? ', שעות חלקיות' : ''})`,
-    `🎓 הסמכה: ${CERT_NAME[n.certification]}`,
-    `🔑 צ'יפ נהיגה: ${n.hasDrivingChip ? 'יש' : 'אין'}`,
-  ];
+  );
+  if (short) {
+    const full = n.shiftStartTime && n.shiftEndTime ? ` (${n.shiftStartTime}–${n.shiftEndTime})` : '';
+    lines.push(`⏰ משמרת: ${SHIFT_NAME[n.shiftType]}${full}`);
+    lines.push(`⏱️ שעות המתנדב: ${n.startTime}–${n.endTime} בלבד`);
+    lines.push(
+      typeof n.shiftDurationMinutes === 'number'
+        ? `⌛ משך: ${hebrewDuration(n.durationMinutes!)} מתוך ${hebrewDuration(n.shiftDurationMinutes)} של המשמרת`
+        : `⌛ משך: ${hebrewDuration(n.durationMinutes!)}`,
+    );
+  } else {
+    lines.push(`⏰ משמרת: ${SHIFT_NAME[n.shiftType]} (${n.startTime}–${n.endTime}${n.partial ? ', שעות חלקיות' : ''})`);
+  }
+  lines.push(`🎓 הסמכה: ${CERT_NAME[n.certification]}`, `🔑 צ'יפ נהיגה: ${n.hasDrivingChip ? 'יש' : 'אין'}`);
   // Only Level B/C volunteers can open a patrol car, so the line is shown only for them.
   if (car) {
     lines.push('🚓 פתיחת ניידת: כן – ניידת נוספת');
@@ -72,6 +109,9 @@ export function buildSignUpMessage(n: SignUpNotice): string {
   }
   if (n.waitlisted) {
     lines.push('', '⏳ הסטטוס: ממתין/ה לשיבוץ (המשמרת מלאה או שהמקום שמור לנהג).');
+  }
+  if (short) {
+    lines.push('', '❗ המתנדב/ת לא מכסה את כל שעות המשמרת – יש לוודא כיסוי לשאר השעות.');
   }
   return lines.join('\n');
 }
