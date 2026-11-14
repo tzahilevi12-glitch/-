@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { hasPendingShift } from '../deepLink.ts';
 import { api, setSession } from '../api.ts';
 import type { Certification, Me } from '../types.ts';
 import { ShieldIcon, WheelIcon } from '../ui.tsx';
-import { EyeIcon, LockIcon, PoliceCarEmblem, UserIcon } from '../icons.tsx';
+import { CalendarIcon, EyeIcon, LockIcon, PoliceCarEmblem, UserIcon } from '../icons.tsx';
 
 /** The station's day: three shifts with the handover overlaps (time runs right to left). */
 function DayStrip() {
@@ -40,6 +41,7 @@ const CERT_OPTIONS: Array<{ value: Certification; title: string; sub: string }> 
 ];
 
 export function EnterScreen() {
+  const [pendingShift] = useState(hasPendingShift);
   const [fullName, setFullName] = useState('');
   const [chip, setChip] = useState<boolean | null>(null);
   const [certification, setCertification] = useState<Certification>('NONE');
@@ -83,6 +85,12 @@ export function EnterScreen() {
 
       <form className="enter-form" onSubmit={submit} noValidate>
         <h2 className="enter-form-title">כניסה למערכת</h2>
+        {pendingShift && (
+          <p className="deep-link-note" role="status">
+            <CalendarIcon size={16} />
+            אחרי הכניסה ייפתח מיד טופס ההרשמה למשמרת שבחרת.
+          </p>
+        )}
         <label className="field">
           <span className="field-label">שם מלא</span>
           <span className="input-wrap">

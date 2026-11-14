@@ -6,6 +6,7 @@ import { CERTIFICATIONS } from '../domain/registrationRules.ts';
 import { guestBoard } from '../services/boardService.ts';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { runShortageDigestIfDue } from '../services/shortageDigest.ts';
+import { monthlyLeaderboard } from '../services/leaderboardService.ts';
 
 export const publicRouter = Router();
 
@@ -57,3 +58,8 @@ async function cronShortageDigest(req: import('express').Request, res: import('e
 }
 publicRouter.get('/cron/shortage-digest', cronShortageDigest);
 publicRouter.post('/cron/shortage-digest', cronShortageDigest);
+
+/** GET /api/public/leaderboard — "🏆 מצטייני החודש": top 3 volunteers this calendar month. */
+publicRouter.get('/leaderboard', async (_req, res) => {
+  res.json(await monthlyLeaderboard());
+});

@@ -32,6 +32,19 @@ interface ShiftBase {
   seatsLeft: number;
   driversMissing: number;
   driverOnly: boolean;
+  /** Minutes until the shift starts (board / guest view only) */
+  startsInMinutes?: number;
+  /** 🚨 starts within 48 hours and still short of regular volunteers */
+  urgent?: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  fullName: string;
+  certification: Certification;
+  hasDrivingChip: boolean;
+  minutes: number;
+  shifts: number;
 }
 
 /** What a guest sees: shifts, staffing, counts and names — nothing personal, no actions. */

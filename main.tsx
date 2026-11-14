@@ -8,6 +8,10 @@ import { VolunteerApp } from './volunteer/VolunteerApp.tsx';
 import { GuestView } from './volunteer/GuestView.tsx';
 import { CommanderLogin } from './commander/CommanderLogin.tsx';
 import { CommanderApp } from './commander/CommanderApp.tsx';
+import { captureShiftLink } from './deepLink.ts';
+
+// /?shiftId=… → remember the shift and go to the board (sign-in first if needed)
+captureShiftLink();
 
 function useHash() {
   const [hash, setHash] = useState(location.hash || '#/');

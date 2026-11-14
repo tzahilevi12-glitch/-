@@ -42,6 +42,7 @@ export async function loadShortages(now = new Date()): Promise<ShortageItem[]> {
     const staffing = computeStaffing(s, countSeats(s.registrations));
     if (staffing.seatsLeft <= 0) continue; // full
     items.push({
+      shiftId: s.id,
       date,
       shiftType: s.shiftType as SummaryShiftType,
       startMinute: window.start,

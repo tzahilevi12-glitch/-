@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { bookShift, takePendingShift } from '../deepLink.ts';
+import { Leaderboard, UrgentBanner } from './Engagement.tsx';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
-import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, ShortShiftBadge, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, ShortShiftBadge, toast, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -39,13 +41,46 @@ export function ShiftBoard({
   const [selected, setSelected] = useState<{ shift: BoardShift; mode: 'regular' | 'car' } | null>(null);
   const canOpenCar = isCertified(certification); // שלב ב' / שלב ג'
 
+  /** Scroll to a shift and open its sign-up (from the urgent banner or a direct link). */
+  const openShift = useCallback(
+    (s: BoardShift) => {
+      document.getElementById(`shift-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (s.myRegistration) return toast('כבר נרשמת למשמרת הזו.');
+      if (s.iHaveShiftThatDay) return toast('כבר יש לך משמרת ביום הזה. אפשר להירשם למשמרת אחת ביום.', 'error');
+      if (s.seatsLeft === 0) {
+        if (canOpenCar) return setSelected({ shift: s, mode: 'car' });
+        return toast('המשמרת כבר התמלאה. תודה על הרצון לעזור!', 'error');
+      }
+      setSelected({ shift: s, mode: 'regular' });
+    },
+    [canOpenCar],
+  );
+
+  // Direct link (/?shiftId=…): open that shift once the board has loaded.
+  useEffect(() => {
+    if (readOnly || !data) return;
+    const handle = () => {
+      const id = takePendingShift();
+      if (!id) return;
+      const s = data.shifts.find((x) => x.id === id);
+      if (s) openShift(s);
+      else toast('המשמרת מהקישור כבר לא פתוחה להרשמה (ייתכן שהתמלאה, התחילה או עוד לא פורסמה). הנה כל המשמרות הפתוחות.', 'error');
+    };
+    handle();
+    window.addEventListener('pv:pending-shift', handle);
+    return () => window.removeEventListener('pv:pending-shift', handle);
+  }, [data, readOnly, openShift]);
+
   if (!data) return <LoadState error={loading ? null : error} onRetry={reload} />;
+
+  const urgent = data.shifts.filter((s) => s.urgent && (readOnly || (!s.myRegistration && !s.iHaveShiftThatDay)));
 
   const days = new Map<string, BoardShift[]>();
   for (const s of data.shifts) days.set(s.date, [...(days.get(s.date) ?? []), s]);
 
   return (
     <section className="page">
+      <UrgentBanner shifts={urgent} onBook={(s) => (readOnly ? bookShift(s.id) : openShift(s))} />
       <h1 className="page-title">לוח משמרות</h1>
       <p className="page-sub">
         {readOnly
@@ -81,7 +116,7 @@ export function ShiftBoard({
               const regularCount = s.registeredPeople ? regularPeople.length : s.registeredCount;
               const full = s.seatsLeft === 0;
               return (
-                <li key={s.id} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
+                <li key={s.id} id={`shift-${s.id}`} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
                   <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
                     <ShiftTypeIcon type={s.shiftType} size={22} />
                   </span>
@@ -192,6 +227,7 @@ export function ShiftBoard({
           }}
         />
       )}
+      <Leaderboard />
     </section>
   );
 }

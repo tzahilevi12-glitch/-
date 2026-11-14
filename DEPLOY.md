@@ -186,7 +186,7 @@ On the commander dashboard (`/#/commander`), click the green **העתק רשימ
 - that hasn't started yet
 - and still has empty regular places.
 
-Full shifts are left out, and extra patrol cars are never counted. A shift that still needs a driver is marked "(דרוש נהג 🚗)". The `*stars*` turn into **bold** in WhatsApp.
+Full shifts are left out, and extra patrol cars are never counted. Every shift line has its own link: tapping it opens the sign-up for exactly that shift, going through sign-in first if needed. A shift that still needs a driver is marked "(דרוש נהג 🚗)". The `*stars*` turn into **bold** in WhatsApp.
 
 If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
 

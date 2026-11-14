@@ -1,16 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysBetween, formatShortageSummary, isDigestDue, missingLabel, summaryDayLabel } from './shortageSummary.ts';
+import { daysBetween, formatShortageSummary, isDigestDue, missingLabel, shiftLink, summaryDayLabel } from './shortageSummary.ts';
 
-test('summary: exact WhatsApp format, sorted by day and shift, full shifts dropped', () => {
+test('summary: exact WhatsApp format with a direct link per shift, sorted, full shifts dropped', () => {
   const text = formatShortageSummary(
     [
-      { date: '2026-11-17', shiftType: 'EVENING', startMinute: 870, missing: 2, needsDriver: false },
-      { date: '2026-11-15', shiftType: 'NIGHT', startMinute: 1290, missing: 1, needsDriver: false },
-      { date: '2026-11-15', shiftType: 'MORNING', startMinute: 360, missing: 2, needsDriver: false },
-      { date: '2026-11-16', shiftType: 'MORNING', startMinute: 360, missing: 0, needsDriver: true }, // full → dropped
+      { shiftId: 's3', date: '2026-11-17', shiftType: 'EVENING', startMinute: 870, missing: 1, needsDriver: false },
+      { shiftId: 's2', date: '2026-11-15', shiftType: 'NIGHT', startMinute: 1290, missing: 1, needsDriver: false },
+      { shiftId: 's1', date: '2026-11-15', shiftType: 'MORNING', startMinute: 360, missing: 2, needsDriver: true },
+      { shiftId: 's4', date: '2026-11-16', shiftType: 'MORNING', startMinute: 360, missing: 0, needsDriver: true }, // full → dropped
     ],
-    { appUrl: 'https://example.onrender.com' },
+    { appUrl: 'https://example.onrender.com/' },
   );
   assert.equal(
     text,
@@ -18,24 +18,23 @@ test('summary: exact WhatsApp format, sorted by day and shift, full shifts dropp
       '🚔 *ריכוז חוסרים במשמרות לשבוע הקרוב:*',
       '',
       '📅 *יום ראשון (15/11):*',
-      '• משמרת בוקר: חסרים 2 מתנדבים',
-      '• משמרת לילה: חסר מתנדב 1',
+      '• משמרת בוקר (חסרים 2, דרוש נהג 🚗): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s1',
+      '• משמרת לילה (חסר 1): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s2',
       '',
       '📅 *יום שלישי (17/11):*',
-      '• משמרת צהריים: חסרים 2 מתנדבים',
-      '',
-      'להרשמה מהירה לחצו כאן: https://example.onrender.com',
+      '• משמרת צהריים (חסר 1): להרשמה מהירה לחץ כאן -> https://example.onrender.com/?shiftId=s3',
     ].join('\n'),
   );
 });
 
-test('summary: driver note, no shortages, no link', () => {
-  const t = formatShortageSummary([{ date: '2026-11-18', shiftType: 'MORNING', startMinute: 360, missing: 3, needsDriver: true }]);
+test('summary: without a site address, plain lines; no shortages', () => {
+  const t = formatShortageSummary([{ shiftId: 'x', date: '2026-11-18', shiftType: 'MORNING', startMinute: 360, missing: 3, needsDriver: true }]);
   assert.match(t, /• משמרת בוקר: חסרים 3 מתנדבים \(דרוש נהג 🚗\)/);
-  assert.doesNotMatch(t, /להרשמה/);
-  const none = formatShortageSummary([], { appUrl: 'https://x' });
+  assert.doesNotMatch(t, /shiftId|להרשמה/);
+  const none = formatShortageSummary([], { appUrl: 'https://x/' });
   assert.match(none, /✅ כל המשמרות לשבוע הקרוב מאוישות/);
-  assert.match(none, /להרשמה מהירה לחצו כאן: https:\/\/x/);
+  assert.match(none, /להרשמה מהירה לחצו כאן: https:\/\/x\//);
+  assert.equal(shiftLink('https://a.b/', 'id 1'), 'https://a.b/?shiftId=id%201');
 });
 
 test('labels', () => {
