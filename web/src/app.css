@@ -746,3 +746,117 @@ button { font: inherit; color: inherit; }
 .car-info > svg { flex: none; margin-top: 2px; }
 .car-info-title { font-weight: 700; }
 .car-info-sub { font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }
+
+/* ── Minimum 3 hours ─────────────────────────────── */
+.min-hint { font-size: 0.82rem; color: var(--ink-2); margin: -4px 0 8px; }
+.min-error {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding: 12px 14px;
+  border-radius: var(--r-md); background: var(--alert-50); color: var(--alert);
+  box-shadow: inset 0 0 0 1px rgba(211, 18, 42, 0.25), inset 3px 0 0 var(--alert);
+  animation: min-error-in 160ms ease-out;
+}
+.min-error > svg { flex: none; margin-top: 1px; }
+.min-error-title { font-weight: 700; }
+.min-error-sub { font-size: 0.85rem; margin-top: 2px; color: var(--ink); }
+@keyframes min-error-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .min-error { animation: none; } }
+
+/* ── Short shift (משמרת מקוצרת): under 5 hours ─────────────────────── */
+:root { --short: #6a3aa8; --short-50: #f3edfb; --short-line: #d6c4ef; }
+.short-badge {
+  display: inline-flex; align-items: center; gap: 4px; flex: none; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 999px;
+  color: var(--short); background: var(--short-50); box-shadow: inset 0 0 0 1px var(--short-line);
+}
+.short-badge-hours { font-weight: 600; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.short-badge.is-compact { font-size: 0.66rem; padding: 3px 6px; gap: 3px; }
+.people-item { flex-wrap: wrap; row-gap: 3px; }
+.people-item .short-badge { font-size: 0.66rem; padding: 3px 7px; }
+
+/* ── Shortage summary for WhatsApp ───────────────────────────── */
+.btn-whatsapp { background: #128c4a; color: #fff; box-shadow: 0 1px 2px rgba(10, 70, 37, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.btn-whatsapp:hover:not(:disabled) { background: #0d7a3f; }
+.shortage-text {
+  width: 100%; margin-top: 10px; padding: 12px; font: inherit; font-size: 0.9rem; line-height: 1.5;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); color: var(--ink); resize: vertical;
+}
+.week-actions { flex-wrap: wrap; }
+
+/* ── 🚨 Urgent shifts (next 48 hours) ─────────────────────────────── */
+.urgent {
+  margin: 0 0 22px; padding: 16px; border-radius: var(--r-lg);
+  background: linear-gradient(180deg, #fff1f2 0%, #fff 100%);
+  border: 1px solid #f5c2c8; box-shadow: var(--shadow), inset 0 3px 0 var(--red);
+}
+.urgent-title { font-size: 1.12rem; font-weight: 800; color: var(--red); margin-bottom: 12px; }
+.urgent-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.urgent-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+  background: var(--surface); border-radius: var(--r-md); border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+}
+.urgent-card-top { display: flex; gap: 10px; align-items: center; }
+.urgent-card-title { font-weight: 800; }
+.urgent-card-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; color: var(--ink-2); font-size: 0.86rem; }
+.urgent-missing { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 700; color: var(--red); font-size: 0.92rem; }
+.urgent-driver { color: var(--chip); }
+.urgent-when { margin-inline-start: auto; font-weight: 600; color: var(--ink-2); font-size: 0.8rem; }
+.btn-book {
+  justify-content: center; font-weight: 800; font-size: 1rem; padding: 11px 14px;
+  background: #12823f; color: #fff; box-shadow: 0 2px 6px rgba(18, 130, 63, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.btn-book:hover:not(:disabled) { background: #0e6e35; }
+
+/* sign-in screen when arriving from a direct shift link */
+.deep-link-note {
+  display: flex; align-items: center; gap: 8px; margin: -4px 0 14px; padding: 10px 12px;
+  border-radius: var(--r-md); background: #e9f6ee; color: #11683a; font-weight: 600; font-size: 0.9rem;
+}
+
+/* ── 🏆 Top volunteers of the month ───────────────────────────────── */
+.leaderboard {
+  margin-top: 28px; padding: 18px; border-radius: var(--r-lg); color: #fff;
+  background: linear-gradient(135deg, var(--police-900) 0%, var(--police) 60%, #163f8f 100%);
+  box-shadow: var(--shadow-lg);
+}
+.leaderboard-head h2 { font-size: 1.2rem; font-weight: 800; }
+.leaderboard-head .muted { color: rgba(255, 255, 255, 0.72); }
+.leaderboard-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.leader {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.leader.rank-1 { background: rgba(255, 215, 90, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.5); }
+.leader-medal { font-size: 1.7rem; line-height: 1; flex: none; }
+.leader-name { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.leader-name-text { font-weight: 700; font-size: 1.02rem; }
+.leader-badges { display: inline-flex; gap: 5px; }
+.leader-badges .cert-badge, .leader-badges .driver-badge { background: #fff; }
+.leader-score { display: flex; flex-direction: column; align-items: flex-end; flex: none; text-align: end; }
+.leader-score strong { font-size: 1.05rem; }
+.leader-score .muted { color: rgba(255, 255, 255, 0.72); }
+.leaderboard-foot { margin-top: 12px; font-size: 0.88rem; color: rgba(255, 255, 255, 0.85); }
+/* phones: urgent cards become a swipeable row so the board stays close */
+@media (max-width: 640px) {
+  .urgent { padding: 14px 0 12px; }
+  .urgent-title { padding: 0 14px; font-size: 1.02rem; margin-bottom: 10px; }
+  .urgent-list {
+    display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px;
+    padding: 2px 14px 8px; scroll-padding-inline: 14px; overscroll-behavior-x: contain;
+  }
+  .urgent-card { flex: 0 0 78%; scroll-snap-align: start; gap: 8px; padding: 12px; }
+  .urgent-list:has(> :only-child) .urgent-card { flex-basis: 100%; }
+  .btn-book { padding: 10px 12px; }
+}
+.urgent-count { font-weight: 600; font-size: 0.8rem; color: var(--ink-2); margin-inline-start: 6px; }
+.shortage-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-commander-copy { background: var(--police); color: #fff; box-shadow: 0 1px 2px rgba(7, 31, 77, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.btn-commander-copy:hover:not(:disabled) { background: var(--police-900); }
+@media (max-width: 640px) {
+  .shortage-buttons { width: 100%; }
+  .shortage-buttons .btn { flex: 1 1 0; justify-content: center; font-size: 0.86rem; padding-inline: 8px; }
+}
+@media (max-width: 640px) {
+  .shortage-buttons { flex-wrap: nowrap; }
+  .shortage-buttons .btn { min-width: 0; white-space: normal; line-height: 1.25; min-height: 52px; text-align: center; gap: 6px; }
+  .shortage-buttons .btn svg { flex: none; }
+}

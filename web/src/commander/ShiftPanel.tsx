@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api.ts';
 import type { RosterPerson, RosterShift } from '../types.ts';
 import { SHIFT_LABEL, dayLabel, range } from '../format.ts';
-import { Avatar, CarIcon, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, TimeSelect, toast } from '../ui.tsx';
+import { Avatar, CarIcon, CertMark, DriverBadge, DutyBar, NewCarTag, Sheet, ShortShiftBadge, TimeSelect, toast } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, HourglassIcon, ShiftTypeIcon, UsersIcon, XIcon } from '../icons.tsx';
 
 function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
@@ -14,6 +14,7 @@ function PersonRow({ p, actions }: { p: RosterPerson; actions: ReactNode }) {
           {p.fullName}
           <CertMark certification={p.certification} />
           {p.hasDrivingChip && <DriverBadge />}
+          {p.shortShift && <ShortShiftBadge startTime={p.startTime} endTime={p.endTime} />}
           {p.opensNewCar && <NewCarTag certification={p.certification} long />}
           {p.cancelRequestedAt && (
             <span className="req-tag">

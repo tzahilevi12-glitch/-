@@ -32,6 +32,19 @@ interface ShiftBase {
   seatsLeft: number;
   driversMissing: number;
   driverOnly: boolean;
+  /** Minutes until the shift starts (board / guest view only) */
+  startsInMinutes?: number;
+  /** 🚨 starts within 48 hours and still short of regular volunteers */
+  urgent?: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  fullName: string;
+  certification: Certification;
+  hasDrivingChip: boolean;
+  minutes: number;
+  shifts: number;
 }
 
 /** What a guest sees: shifts, staffing, counts and names — nothing personal, no actions. */
@@ -42,6 +55,10 @@ export interface RosterName {
   hasDrivingChip: boolean;
   /** Registered as an extra patrol car (parallel to the regular slots). */
   opensNewCar?: boolean;
+  startTime?: string;
+  endTime?: string;
+  /** "משמרת מקוצרת": partial hours totalling less than 5 hours. */
+  shortShift?: boolean;
 }
 
 export interface GuestShift extends ShiftBase {
@@ -106,6 +123,8 @@ export interface RosterPerson {
   opensNewCar: boolean;
   /** Asked to cancel 12 hours or less before the shift; still holds the seat until approved. */
   cancelRequestedAt?: string | null;
+  /** "משמרת מקוצרת": partial hours totalling less than 5 hours. */
+  shortShift?: boolean;
   startTime: string;
   endTime: string;
   isPartial: boolean;

@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { ApiError } from '../lib/errors.ts';
 import { fromIsoDate, isIsoDate, todayInStation } from '../lib/dates.ts';
 import { asBody, optBool, optEnum, optHHMM, optInt, optString, reqDate, reqEnum } from '../lib/validate.ts';
-import { CERTIFICATIONS, addDays, computeStaffing, formatInterval } from '../domain/registrationRules.ts';
+import { CERTIFICATIONS, addDays, computeStaffing, formatInterval, isShortShift } from '../domain/registrationRules.ts';
 import {
   acknowledgeAlerts,
   adminApproveRegistration,
@@ -24,6 +24,7 @@ import {
   type ShiftFields,
 } from '../services/shiftAdminService.ts';
 import { adminUpdateUser, listVolunteers } from '../services/userService.ts';
+import { buildShortageSummary } from '../services/shortageService.ts';
 import { countSeats, registrationInterval, shiftHeader, staffingView, windowOf } from '../services/shiftState.ts';
 
 export const adminRouter = Router();
@@ -91,6 +92,7 @@ adminRouter.get('/weeks/:date', async (req, res) => {
           startTime: f.start,
           endTime: f.end,
           isPartial: interval.start !== window.start || interval.end !== window.end,
+          shortShift: isShortShift(interval, window),
           signedUpAt: r.createdAt,
           cancelRequestedAt: r.cancelRequestedAt,
         };
@@ -142,6 +144,18 @@ adminRouter.post('/registrations/:id/cancel-request', async (req, res) => {
 // ───────────────────────── scheduler alerts ─────────────────────────
 
 /** GET /api/admin/alerts — cancellations not yet acknowledged (shown as a popup). */
+/**
+ * GET /api/admin/shortages?format=volunteers|commander — live shortage text for the next 7 days,
+ * ready for WhatsApp. volunteers (default): per shift with direct links; commander: per day totals.
+ * → { format, text, daysWithShortage, shiftsWithShortage, missingTotal }
+ */
+adminRouter.get('/shortages', async (req, res) => {
+  const format = req.query.format === 'commander' ? 'commander' : 'volunteers';
+  const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0].trim();
+  const host = req.get('x-forwarded-host') ?? req.get('host');
+  res.json(await buildShortageSummary({ requestUrl: host ? `${proto}://${host}` : null, format }));
+});
+
 adminRouter.get('/alerts', async (_req, res) => {
   res.json({ alerts: await openAlerts() });
 });

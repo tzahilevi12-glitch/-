@@ -13,6 +13,10 @@ import {
   weekStartOf,
   type RegistrationContext,
   FREE_CANCEL_MINUTES,
+  MIN_REGISTRATION_MINUTES,
+  SHORT_SHIFT_MINUTES,
+  isShortShift,
+  meetsMinimumDuration,
   freeCancelMinutesLeft,
   minutesUntilStart,
   volunteerCancelMode,
@@ -70,7 +74,7 @@ test('capacity is absolute per shift, regardless of hours', () => {
   const d = decideRegistration(ctx({
     shift: { ...evening, maxVolunteers: 2 },
     counts: { approvedTotal: 2, approvedDrivers: 1 },
-    requested: { startTime: '14:30', endTime: '16:00' },
+    requested: { startTime: '14:30', endTime: '17:30' },
   }));
   assert.equal(code(d), 'SHIFT_FULL');
 });
@@ -104,9 +108,11 @@ test('unpublished shifts cannot be booked', () => {
 });
 
 test('past hours rejected; remaining hours of a running shift allowed', () => {
-  const now = { date: '2026-11-10', minute: at('19:00') };
+  const now = { date: '2026-11-10', minute: at('18:00') };
   assert.equal(code(decideRegistration(ctx({ now, requested: { endTime: '18:00' } }))), 'SHIFT_IN_PAST');
-  assert.equal(code(decideRegistration(ctx({ now, requested: { startTime: '19:30' } }))), 'APPROVED');
+  assert.equal(code(decideRegistration(ctx({ now, requested: { startTime: '18:30' } }))), 'APPROVED');
+  // joining late is still subject to the 3-hour minimum
+  assert.equal(code(decideRegistration(ctx({ now, requested: { startTime: '19:30' } }))), 'TOO_SHORT');
 });
 
 test('duplicates, cancelled re-registration, paused users', () => {
@@ -222,4 +228,43 @@ test('cancel window: free while more than 12 hours remain; 12 hours or less need
   assert.equal(volunteerCancelMode({ status: 'APPROVED', minutesToStart: -30 }), 'NEEDS_APPROVAL');
   assert.equal(volunteerCancelMode({ status: 'PENDING', minutesToStart: 5 }), 'FREE');
   assert.equal(freeCancelMinutesLeft(100), 0);
+});
+
+test('minimum 3 hours: applies to partial hours and to extra patrol cars', () => {
+  assert.equal(MIN_REGISTRATION_MINUTES, 180);
+  const evening = { start: 14 * 60 + 30, end: 22 * 60 };
+  assert.equal(meetsMinimumDuration({ start: 19 * 60, end: 22 * 60 }, evening), true); // exactly 3h
+  assert.equal(meetsMinimumDuration({ start: 19 * 60 + 30, end: 22 * 60 }, evening), false); // 2.5h
+  // a special shift shorter than 3 hours: only the whole shift is allowed
+  const short = { start: 10 * 60, end: 12 * 60 };
+  assert.equal(meetsMinimumDuration(short, short), true);
+  assert.equal(meetsMinimumDuration({ start: 10 * 60, end: 11 * 60 }, short), false);
+
+  const base = {
+    user: { isActive: true, hasDrivingChip: true, certification: 'LEVEL_C' as const },
+    shift: { requiredDrivers: 1, maxVolunteers: 2, date: '2026-11-12', status: 'OPEN' as const, published: true, window: evening },
+    counts: { approvedTotal: 0, approvedDrivers: 0, approvedExtra: 0 },
+    existingStatusOnShift: null,
+    otherShiftDates: [],
+    now: { date: '2026-11-11', minute: 600 },
+  };
+  const tooShort = decideRegistration({ ...base, requested: { startTime: '20:00', endTime: '22:00' } } as any);
+  assert.equal(tooShort.outcome, 'REJECTED');
+  assert.equal((tooShort as any).code, 'TOO_SHORT');
+  assert.match((tooShort as any).message, /פחות מ-3 שעות/);
+  const carTooShort = decideRegistration({ ...base, requested: { startTime: '20:00', endTime: '22:00', opensNewCar: true } } as any);
+  assert.equal((carTooShort as any).code, 'TOO_SHORT');
+  assert.equal(decideRegistration({ ...base, requested: { startTime: '19:00', endTime: '22:00' } } as any).outcome, 'APPROVED');
+  assert.equal(decideRegistration({ ...base, requested: { startTime: '19:00', endTime: '22:00', opensNewCar: true } } as any).outcome, 'APPROVED');
+});
+
+test('short shift flag: partial hours under 5 hours', () => {
+  assert.equal(SHORT_SHIFT_MINUTES, 300);
+  const evening = { start: 14 * 60 + 30, end: 22 * 60 };
+  assert.equal(isShortShift({ start: 19 * 60, end: 22 * 60 }, evening), true); // 3h
+  assert.equal(isShortShift({ start: 17 * 60 + 30, end: 22 * 60 }, evening), true); // 4.5h
+  assert.equal(isShortShift({ start: 17 * 60, end: 22 * 60 }, evening), false); // exactly 5h
+  assert.equal(isShortShift(evening, evening), false); // whole shift (7.5h)
+  const special = { start: 10 * 60, end: 14 * 60 }; // a 4-hour special shift taken whole
+  assert.equal(isShortShift(special, special), false);
 });

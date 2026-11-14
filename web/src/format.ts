@@ -94,6 +94,10 @@ export const fromMin = (m: number) => {
   return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
 };
 
+/** Same rule as the server: a registration must be at least 3 hours long (whole shift if it is shorter). */
+export const MIN_REGISTRATION_MINUTES = 3 * 60;
+export const MIN_DURATION_MESSAGE = 'שגיאה: לא ניתן להירשם למשמרת שאורכה פחות מ-3 שעות.';
+
 export function windowOf(start: string, end: string): { start: number; end: number } {
   const s = toMin(start);
   const e = toMin(end);

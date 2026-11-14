@@ -1,9 +1,21 @@
 import { useMemo, useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, Certification } from '../types.ts';
-import { CERT_SHORT, SHIFT_LABEL, dayLabel, durationLabel, inWindow, isCertified, range, timeOptions, windowOf } from '../format.ts';
+import {
+  CERT_SHORT,
+  MIN_DURATION_MESSAGE,
+  MIN_REGISTRATION_MINUTES,
+  SHIFT_LABEL,
+  dayLabel,
+  durationLabel,
+  inWindow,
+  isCertified,
+  range,
+  timeOptions,
+  windowOf,
+} from '../format.ts';
 import { CarIcon, DutyBar, Sheet, ShiftBadge, toast } from '../ui.tsx';
-import { CalendarIcon, ClockIcon, ShiftTypeIcon } from '../icons.tsx';
+import { AlertIcon, CalendarIcon, ClockIcon, ShiftTypeIcon } from '../icons.tsx';
 
 /**
  * mode "regular": a regular slot in the shift.
@@ -35,7 +47,10 @@ export function SignUpSheet({
   const w = windowOf(shift.startTime, shift.endTime);
   const startTime = partial ? from : shift.startTime;
   const endTime = partial ? to : shift.endTime;
-  const valid = inWindow(startTime, w) < inWindow(endTime, w);
+  const ordered = inWindow(startTime, w) < inWindow(endTime, w);
+  // Minimum 3 hours for every registration (regular or extra car); the server enforces the same rule.
+  const tooShort = ordered && inWindow(endTime, w) - inWindow(startTime, w) < Math.min(MIN_REGISTRATION_MINUTES, w.end - w.start);
+  const valid = ordered && !tooShort;
   const openCar = mode === 'car' && isCertified(certification);
   const blockedFull = !openCar && shift.seatsLeft === 0;
 
@@ -99,6 +114,7 @@ export function SignUpSheet({
           </button>
         </div>
 
+        {partial && <p className="min-hint">אפשר לבחור חלק מהמשמרת – לפחות 3 שעות.</p>}
         {partial && (
           <div className="time-pair">
             <label className="field">
@@ -125,7 +141,19 @@ export function SignUpSheet({
           end={shift.endTime}
           lanes={[{ key: 'me', label: 'אני', startTime, endTime, driver: isDriver, highlight: true }]}
         />
-        <p className="muted small">{valid ? durationLabel(startTime, endTime) : 'שעת הסיום צריכה להיות אחרי שעת ההתחלה.'}</p>
+        {tooShort ? (
+          <div className="min-error" role="alert">
+            <AlertIcon size={18} />
+            <div>
+              <p className="min-error-title">{MIN_DURATION_MESSAGE}</p>
+              <p className="min-error-sub">
+                בחרת {durationLabel(startTime, endTime)}. יש לבחור טווח של 3 שעות לפחות.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="muted small">{ordered ? durationLabel(startTime, endTime) : 'שעת הסיום צריכה להיות אחרי שעת ההתחלה.'}</p>
+        )}
 
 
         {error && (

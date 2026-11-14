@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, ApiError } from '../api.ts';
-import type { MyShift } from '../types.ts';
+import { bookShift } from '../deepLink.ts';
+import { UrgentBanner } from './Engagement.tsx';
+import type { BoardShift, MyShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, inWindow, ltr, minutesUntil, range, shortDay, windowOf } from '../format.ts';
 import { DutyBar, LoadState, NewCarTag, Sheet, useLoad } from '../ui.tsx';
 import { CalendarIcon, ClipboardIcon, ClockIcon, HourglassIcon, SendIcon, ShiftTypeIcon, TimerIcon, XIcon } from '../icons.tsx';
@@ -207,6 +209,17 @@ function ShiftCard({
   );
 }
 
+/** The urgent banner on "המשמרות שלי" too: booking goes to the board and opens the sign-up there. */
+function MyUrgentBanner() {
+  const [urgent, setUrgent] = useState<BoardShift[]>([]);
+  useEffect(() => {
+    api<{ shifts: BoardShift[] }>('/shifts')
+      .then((r) => setUrgent(r.shifts.filter((s) => s.urgent && !s.myRegistration && !s.iHaveShiftThatDay)))
+      .catch(() => setUrgent([]));
+  }, []);
+  return <UrgentBanner shifts={urgent} onBook={(s) => bookShift(s.id)} />;
+}
+
 export function MyShifts({ isDriver, name }: { isDriver: boolean; name: string }) {
   const { data, error, loading, reload } = useLoad(() => api<{ approved: MyShift[]; waitlisted: MyShift[] }>('/me/shifts'));
   const [cancelling, setCancelling] = useState<{ s: MyShift; kind: CancelKind } | null>(null);
@@ -248,6 +261,7 @@ export function MyShifts({ isDriver, name }: { isDriver: boolean; name: string }
 
   return (
     <section className="page">
+      <MyUrgentBanner />
       <h1 className="page-title">שלום {name.split(' ')[0]}</h1>
       <p className="page-sub">{n === 0 ? 'אין לך משמרות קרובות.' : n === 1 ? 'יש לך משמרת אחת קרובה.' : `יש לך ${n} משמרות קרובות.`}</p>
       {all.length === 0 ? (

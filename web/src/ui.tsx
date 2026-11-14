@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
-import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, windowOf } from './format.ts';
-import { CarFrontIcon, CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, WheelIcon, XIcon } from './icons.tsx';
+import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, range, windowOf } from './format.ts';
+import { CarFrontIcon, CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, TimerIcon, WheelIcon, XIcon } from './icons.tsx';
 
 // ───────────── icons (see icons.tsx) ─────────────
 
@@ -86,6 +86,22 @@ export function DriverBadge({ compact }: { compact?: boolean }) {
   );
 }
 
+/**
+ * "משמרת מקוצרת": the volunteer is on the shift for less than 5 hours (not the whole shift).
+ *   compact: "מקוצרת" only (narrow grid cells); hours, when given, are shown after the label.
+ */
+export function ShortShiftBadge({ startTime, endTime, compact }: { startTime?: string; endTime?: string; compact?: boolean }) {
+  const hours = startTime && endTime ? range(startTime, endTime) : null;
+  const title = `משמרת מקוצרת – פחות מ-5 שעות${startTime && endTime ? ` (${startTime}–${endTime})` : ''}`;
+  return (
+    <span className={`short-badge${compact ? ' is-compact' : ''}`} title={title} aria-label={title}>
+      <TimerIcon size={compact ? 12 : 13} strokeWidth={2.4} />
+      {compact ? 'מקוצרת' : 'משמרת מקוצרת'}
+      {hours && !compact && <span className="short-badge-hours">{hours}</span>}
+    </span>
+  );
+}
+
 /** Legend for the badges, shown above rosters. */
 export function BadgeLegend() {
   return (
@@ -104,6 +120,7 @@ export function BadgeLegend() {
         שלב ג'
       </span>
       <DriverBadge />
+      <ShortShiftBadge />
       <span className="car-tag">
         <CarIcon size={12} />
         פותח ניידת

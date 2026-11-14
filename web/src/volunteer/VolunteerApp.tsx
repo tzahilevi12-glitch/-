@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { hasPendingShift } from '../deepLink.ts';
 import { api } from '../api.ts';
 import type { Me, Notification } from '../types.ts';
 import { Avatar, Brand, CertMark, LoadState, Sheet, useLoad } from '../ui.tsx';
@@ -45,6 +46,8 @@ export function VolunteerApp({ tab }: { tab: Tab }) {
   const [notes, setNotes] = useState<Notification[]>([]);
 
   useEffect(() => {
+    // Came from a direct shift link: go straight to that shift, no "new shifts" popup on top of it.
+    if (hasPendingShift()) return;
     api<{ notifications: Notification[] }>('/me/notifications')
       .then((r) => setNotes(r.notifications))
       .catch(() => undefined);

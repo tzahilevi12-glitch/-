@@ -98,6 +98,30 @@ export function resolveHours(window: Interval, startTime?: string | null, endTim
   return { ok: true, interval: { start, end } };
 }
 
+/** Minimum length of a volunteer's registration (whole or partial, regular or extra patrol car). */
+export const MIN_REGISTRATION_MINUTES = 3 * 60;
+export const MIN_DURATION_MESSAGE = 'שגיאה: לא ניתן להירשם למשמרת שאורכה פחות מ-3 שעות.';
+
+/**
+ * True when the chosen hours are at least 3 hours long. If the shift itself is shorter than
+ * 3 hours (a special shift the commander created), only the whole shift is allowed.
+ */
+export function meetsMinimumDuration(i: Interval, window: Interval): boolean {
+  const required = Math.min(MIN_REGISTRATION_MINUTES, window.end - window.start);
+  return i.end - i.start >= required;
+}
+
+/** Registrations shorter than this are flagged "משמרת מקוצרת" on every roster. */
+export const SHORT_SHIFT_MINUTES = 5 * 60;
+
+/**
+ * A short shift: the volunteer is not staying for the whole shift and their hours total less than
+ * 5 hours. Someone taking the whole of a (special) shift that is itself shorter is not flagged.
+ */
+export function isShortShift(i: Interval, window: Interval): boolean {
+  return !isWholeShift(i, window) && i.end - i.start < SHORT_SHIFT_MINUTES;
+}
+
 export function isWholeShift(i: Interval, window: Interval): boolean {
   return i.start === window.start && i.end === window.end;
 }
@@ -162,6 +186,7 @@ export type RejectionCode =
   | 'USER_INACTIVE'
   | 'NOT_PUBLISHED'
   | 'INVALID_HOURS'
+  | 'TOO_SHORT'
   | 'SHIFT_NOT_OPEN'
   | 'SHIFT_IN_PAST'
   | 'SHIFT_FULL'
@@ -199,6 +224,7 @@ export function decideRegistration(ctx: RegistrationContext): RegistrationDecisi
   const hours = resolveHours(shift.window, ctx.requested.startTime, ctx.requested.endTime);
   if (!hours.ok) return reject('INVALID_HOURS', hours.message);
   const interval = hours.interval;
+  if (!meetsMinimumDuration(interval, shift.window)) return reject('TOO_SHORT', MIN_DURATION_MESSAGE);
 
   if (absoluteMinute(shift.date, interval.end) <= absoluteMinute(ctx.now.date, ctx.now.minute)) {
     return reject('SHIFT_IN_PAST', 'השעות האלה כבר עברו.');
