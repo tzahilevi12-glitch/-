@@ -1,7 +1,7 @@
 /**
  * Engagement helpers (pure, tested):
  *  - urgent shifts: starting within the next 48 hours and still short of regular volunteers;
- *  - "מצטייני החודש": top volunteers of the calendar month by hours, then by number of shifts.
+ *  - "טופ 3 מובילים": top volunteers of the calendar month by number of shifts (hours break ties).
  */
 
 export const URGENT_WINDOW_MINUTES = 48 * 60;
@@ -33,10 +33,10 @@ export interface RankedVolunteer<P> {
 }
 
 /**
- * Sum each volunteer's registrations and return the top `n`:
- * most minutes first; equal minutes → more shifts first; still equal → name (stable, alphabetical).
+ * Count each volunteer's shifts (one entry = one registration) and return the top `n`:
+ * most shifts first; equal shifts → more hours first; still equal → name (stable, alphabetical).
  */
-export function rankVolunteers<P extends { fullName: string }>(entries: HoursEntry<P>[], n = 3): RankedVolunteer<P>[] {
+export function rankVolunteers<P extends { fullName: string }>(entries: HoursEntry<P>[], n = 10): RankedVolunteer<P>[] {
   const totals = new Map<string, { person: P; minutes: number; shifts: number }>();
   for (const e of entries) {
     const t = totals.get(e.userId) ?? { person: e.person, minutes: 0, shifts: 0 };
@@ -46,7 +46,7 @@ export function rankVolunteers<P extends { fullName: string }>(entries: HoursEnt
   }
   return [...totals.values()]
     .filter((t) => t.minutes > 0)
-    .sort((a, b) => b.minutes - a.minutes || b.shifts - a.shifts || a.person.fullName.localeCompare(b.person.fullName, 'he'))
+    .sort((a, b) => b.shifts - a.shifts || b.minutes - a.minutes || a.person.fullName.localeCompare(b.person.fullName, 'he'))
     .slice(0, n)
     .map((t, i) => ({ rank: i + 1, ...t }));
 }

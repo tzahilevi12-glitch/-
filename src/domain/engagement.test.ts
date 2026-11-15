@@ -16,20 +16,28 @@ test('month range', () => {
   assert.deepEqual(monthRange('2026-12-31'), { from: '2026-12-01', to: '2027-01-01', month: '2026-12' });
 });
 
-test('leaderboard: hours first, then number of shifts, top 3', () => {
+test('leaderboard: most shifts first, hours break ties, top 10', () => {
   const p = (fullName: string) => ({ fullName });
+  const e = (userId: string, name: string, minutes: number) => ({ userId, person: p(name), minutes });
   const top = rankVolunteers([
-    { userId: 'a', person: p('אבי'), minutes: 540 },
-    { userId: 'a', person: p('אבי'), minutes: 450 }, // אבי 16.5h, 2 shifts
-    { userId: 'b', person: p('בתיה'), minutes: 990 }, // 16.5h, 1 shift
-    { userId: 'c', person: p('גלעד'), minutes: 540 },
-    { userId: 'd', person: p('דנה'), minutes: 1200 },
-    { userId: 'e', person: p('הדר'), minutes: 180 },
+    e('a', 'אבי', 540), e('a', 'אבי', 450), e('a', 'אבי', 300), // 3 shifts, 21.5h
+    e('b', 'בתיה', 990), e('b', 'בתיה', 570), // 2 shifts, 26h
+    e('c', 'גלעד', 540), e('c', 'גלעד', 540), // 2 shifts, 18h
+    e('d', 'דנה', 1200), // 1 shift
   ]);
-  assert.deepEqual(top.map((t) => [t.rank, t.person.fullName, t.minutes, t.shifts]), [
-    [1, 'דנה', 1200, 1],
-    [2, 'אבי', 990, 2], // same hours as בתיה, more shifts
-    [3, 'בתיה', 990, 1],
+  assert.deepEqual(top.map((t) => [t.rank, t.person.fullName, t.shifts]), [
+    [1, 'אבי', 3],
+    [2, 'בתיה', 2], // same count as גלעד, more hours
+    [3, 'גלעד', 2],
+    [4, 'דנה', 1],
   ]);
+  const many = Array.from({ length: 14 }, (_, i) => e(`u${i}`, `מתנדב ${i}`, 300 + i));
+  assert.equal(rankVolunteers(many).length, 10);
+  assert.equal(rankVolunteers(many, 3).length, 3); // the board shows the top 3
   assert.deepEqual(rankVolunteers([]), []);
+});
+
+test('month boundary: November counts reset on December 1st', () => {
+  assert.deepEqual(monthRange('2026-11-30'), { from: '2026-11-01', to: '2026-12-01', month: '2026-11' });
+  assert.deepEqual(monthRange('2026-12-01'), { from: '2026-12-01', to: '2027-01-01', month: '2026-12' });
 });

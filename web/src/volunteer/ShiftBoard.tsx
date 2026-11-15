@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { bookShift, takePendingShift } from '../deepLink.ts';
-import { Leaderboard, UrgentBanner } from './Engagement.tsx';
+import { MonthLeaders, UrgentBanner, useMonthLeaders } from './Engagement.tsx';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
@@ -40,6 +40,7 @@ export function ShiftBoard({
   );
   const [selected, setSelected] = useState<{ shift: BoardShift; mode: 'regular' | 'car' } | null>(null);
   const canOpenCar = isCertified(certification); // שלב ב' / שלב ג'
+  const leaders = useMonthLeaders();
 
   /** Scroll to a shift and open its sign-up (from the urgent banner or a direct link). */
   const openShift = useCallback(
@@ -79,8 +80,10 @@ export function ShiftBoard({
   for (const s of data.shifts) days.set(s.date, [...(days.get(s.date) ?? []), s]);
 
   return (
-    <section className="page">
+    <section className="page board-layout">
+      <div className="board-main">
       <UrgentBanner shifts={urgent} onBook={(s) => (readOnly ? bookShift(s.id) : openShift(s))} />
+      <MonthLeaders data={leaders} variant="card" />
       <h1 className="page-title">לוח משמרות</h1>
       <p className="page-sub">
         {readOnly
@@ -227,7 +230,8 @@ export function ShiftBoard({
           }}
         />
       )}
-      <Leaderboard />
+      </div>
+      <MonthLeaders data={leaders} variant="sidebar" />
     </section>
   );
 }

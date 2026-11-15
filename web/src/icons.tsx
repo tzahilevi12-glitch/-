@@ -231,9 +231,9 @@ export const SearchIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const ChevronIcon = ({ dir, ...p }: IconProps & { dir: 'left' | 'right' }) => (
+export const ChevronIcon = ({ dir, ...p }: IconProps & { dir: 'left' | 'right' | 'down' }) => (
   <Icon {...p}>
-    <path d={dir === 'left' ? 'm15 5-7 7 7 7' : 'm9 5 7 7-7 7'} />
+    <path d={dir === 'left' ? 'm15 5-7 7 7 7' : dir === 'right' ? 'm9 5 7 7-7 7' : 'm6 9 6 6 6-6'} />
   </Icon>
 );
 

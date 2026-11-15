@@ -4,10 +4,11 @@ import { monthRange, rankVolunteers } from '../domain/engagement.ts';
 import { registrationInterval, windowOf } from './shiftState.ts';
 
 /**
- * "🏆 מצטייני החודש": the top 3 volunteers of the current calendar month (station time),
- * by total hours of their confirmed shifts in the month — done and still to come — then by
- * number of shifts. Cancelled shifts, waitlist entries and commanders are not counted.
- * Extra patrol cars count like any other shift.
+ * "🏆 טופ 3 מובילים": the top 3 volunteers of the current calendar month (station time), by the
+ * number of confirmed shifts in the month — done and still to come — with hours breaking ties.
+ * The month is taken from today's date in Israel, so the count starts fresh at 00:00 on the 1st.
+ * Counted: self sign-ups and manual registrations, regular slots and extra patrol cars.
+ * Not counted: cancelled shifts, waitlist entries, commanders, paused volunteers.
  */
 export async function monthlyLeaderboard(now = new Date()) {
   const { from, to, month } = monthRange(todayInStation(now));
@@ -31,6 +32,7 @@ export async function monthlyLeaderboard(now = new Date()) {
       const i = registrationInterval(windowOf(r.shift), r);
       return { userId: r.userId as string, person: r.user as Person, minutes: i.end - i.start };
     }),
+    3,
   );
   return {
     month,

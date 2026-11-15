@@ -75,49 +75,83 @@ export function UrgentBanner({ shifts, onBook }: { shifts: BoardShift[]; onBook:
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
-function hoursLabel(minutes: number): string {
-  const h = minutes / 60;
-  const text = Number.isInteger(h) ? String(h) : h.toFixed(1).replace(/\.0$/, '');
-  return `${text} שעות`;
+export interface MonthLeadersData {
+  month: string; // YYYY-MM
+  top: LeaderboardEntry[];
 }
 
-/** 🏆 Top 3 volunteers this calendar month (by hours, then shifts). Hidden when nobody has hours yet. */
-export function Leaderboard() {
-  const [data, setData] = useState<{ month: string; top: LeaderboardEntry[] } | null>(null);
+/** Loads "מובילים החודש" once for the board (both layouts use the same data). */
+export function useMonthLeaders(): MonthLeadersData | null {
+  const [data, setData] = useState<MonthLeadersData | null>(null);
   useEffect(() => {
-    api<{ month: string; top: LeaderboardEntry[] }>('/public/leaderboard')
+    api<MonthLeadersData>('/public/leaderboard')
       .then(setData)
       .catch(() => setData(null));
   }, []);
-  if (!data || data.top.length === 0) return null;
-  const monthName = new Date(`${data.month}-01T00:00:00Z`).toLocaleDateString('he-IL', { month: 'long', timeZone: 'UTC' });
+  return data;
+}
+
+function monthName(month: string): string {
+  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString('he-IL', { month: 'long', timeZone: 'UTC' });
+}
+
+const shiftsLabel = (n: number) => (n === 1 ? 'משמרת אחת' : `${n} משמרות`);
+
+function hoursText(minutes: number): string {
+  const h = minutes / 60;
+  return `${Number.isInteger(h) ? h : h.toFixed(1)} שעות`;
+}
+
+function LeadersList({ top }: { top: LeaderboardEntry[] }) {
   return (
-    <section className="leaderboard" aria-labelledby="lb-title">
-      <div className="leaderboard-head">
-        <h2 id="lb-title">🏆 מצטייני החודש</h2>
-        <p className="muted small">חודש {monthName} · לפי שעות משמרת (שבוצעו ומתוכננות)</p>
-      </div>
-      <ol className="leaderboard-list">
-        {data.top.map((t) => (
-          <li key={t.rank} className={`leader rank-${t.rank}`}>
-            <span className="leader-medal" aria-label={`מקום ${t.rank}`}>
+    <ol className="leaders-list">
+      {top.slice(0, 3).map((t) => (
+        <li key={t.rank} className={`leaders-row rank-${t.rank}`}>
+          <span className="leaders-rank">
+            <span className="leaders-medal" aria-hidden="true">
               {MEDAL[t.rank - 1]}
             </span>
-            <span className="leader-name">
-              <span className="leader-name-text">{t.fullName}</span>
-              <span className="leader-badges">
-                <CertMark certification={t.certification} />
-                {t.hasDrivingChip && <DriverBadge compact />}
-              </span>
+            <span className="leaders-place">מקום {t.rank}</span>
+          </span>
+          <span className="leaders-who">
+            <span className="leaders-name">{t.fullName}</span>
+            <span className="leaders-badges">
+              <CertMark certification={t.certification} compact />
+              {t.hasDrivingChip && <DriverBadge compact />}
             </span>
-            <span className="leader-score">
-              <strong>{hoursLabel(t.minutes)}</strong>
-              <span className="muted small">{t.shifts === 1 ? 'משמרת אחת' : `${t.shifts} משמרות`}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-      <p className="leaderboard-foot">כל הכבוד ותודה על ההתנדבות! 💙</p>
-    </section>
+          </span>
+          <span className="leaders-count" title={hoursText(t.minutes)}>
+            {shiftsLabel(t.shifts)}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/**
+ * "🏆 טופ 3 מובילים - <month>": the 3 volunteers with the most shifts this calendar month
+ * (self sign-ups and manual registrations, regular slots and extra patrol cars). Starts fresh on
+ * the 1st of every month (Israel time).
+ *   variant "sidebar": compact sticky navy panel beside the board (wide screens);
+ *   variant "card": the same card above the board (phones).
+ */
+export function MonthLeaders({ data, variant }: { data: MonthLeadersData | null; variant: 'sidebar' | 'card' }) {
+  if (!data) return null;
+  const id = `leaders-title-${variant}`;
+  return (
+    <aside className={`leaders leaders-${variant}`} aria-labelledby={id}>
+      <h2 id={id} className="leaders-title">
+        🏆 טופ 3 מובילים - {monthName(data.month)}
+      </h2>
+      {data.top.length === 0 ? (
+        <p className="leaders-empty">החודש רק התחיל – הירשמו למשמרת ותופיעו כאן!</p>
+      ) : (
+        <>
+          <LeadersList top={data.top} />
+          <p className="leaders-foot">לפי מספר משמרות החודש · מתאפס ב-1 לכל חודש</p>
+        </>
+      )}
+    </aside>
   );
 }
