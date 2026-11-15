@@ -8,14 +8,15 @@ import { registrationInterval, windowOf } from './shiftState.ts';
  * number of confirmed shifts in the month — done and still to come — with hours breaking ties.
  * The month is taken from today's date in Israel, so the count starts fresh at 00:00 on the 1st.
  * Counted: self sign-ups and manual registrations, regular slots and extra patrol cars.
- * Not counted: cancelled shifts, waitlist entries, commanders, paused volunteers.
+ * Not counted: cancelled registrations, waitlist entries, commanders, paused volunteers.
  */
 export async function monthlyLeaderboard(now = new Date()) {
   const { from, to, month } = monthRange(todayInStation(now));
   const regs = await prisma.shiftRegistration.findMany({
     where: {
       status: 'APPROVED',
-      shift: { date: { gte: fromIsoDate(from), lt: fromIsoDate(to) }, status: { not: 'CANCELLED' } },
+      // every ShiftStatus counts (OPEN / FILLED / COMPLETED); a deleted shift has no registrations left
+      shift: { date: { gte: fromIsoDate(from), lt: fromIsoDate(to) } },
       user: { role: 'VOLUNTEER', isActive: true },
     },
     select: {

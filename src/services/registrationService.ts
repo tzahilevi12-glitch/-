@@ -112,7 +112,6 @@ export async function registerForShift(userId: string, shiftId: string, hours: R
     if (!loaded) throw new ApiError(404, 'SHIFT_NOT_FOUND', 'המשמרת לא נמצאה.');
     const { shift, window } = loaded;
 
-    if (opts.byAdmin && shift.status === 'CANCELLED') throw new ApiError(409, 'SHIFT_NOT_OPEN', 'המשמרת בוטלה.');
     const ctx = {
       user: { ...user, certification: user.certification as Certification },
       shift: { ...shift, date: toIsoDate(shift.date), published: shift.publishedAt !== null, window },
