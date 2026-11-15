@@ -156,7 +156,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
           <ShortagesButton />
           <button className="btn btn-manual" onClick={() => setManual({})}>
             <PlusIcon size={17} strokeWidth={2.4} />
-            רשום מתנדב ידנית
+            רשום מתנדב ידני
           </button>
           <button className="btn btn-ghost" onClick={() => setAdding('week')}>
             <PlusIcon size={17} />
