@@ -903,3 +903,10 @@ button { font: inherit; color: inherit; }
   .leaders-card { display: none; }
   .leaders-sidebar { display: block; position: sticky; top: 16px; margin-top: 26px; }
 }
+.btn-image { background: linear-gradient(135deg, #0B192C, #132743); color: #fff; box-shadow: 0 1px 2px rgba(11, 25, 44, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.btn-image:hover:not(:disabled) { background: linear-gradient(135deg, #07111f, #0e1f38); }
+@media (max-width: 640px) {
+  .shortage-buttons { flex-wrap: wrap; }
+  .shortage-buttons .btn { flex: 1 1 40%; }
+  .shortage-buttons .btn-image { flex-basis: 100%; min-height: 46px; }
+}

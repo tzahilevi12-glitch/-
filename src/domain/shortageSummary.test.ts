@@ -75,3 +75,11 @@ test('commander summary: one line per open shift — day, shift, missing; no lin
   );
   assert.equal(formatCommanderSummary([]), '📊 *חוסרים במשמרות (עדכון למפקד):*\n\n✅ אין חוסרים בשבוע הקרוב.');
 });
+
+test('week scope: title names the week, empty-week wording', () => {
+  const week = { from: '2026-11-15', to: '2026-11-21' };
+  const items = [{ shiftId: 'a', date: '2026-11-17', shiftType: 'MORNING' as const, startMinute: 360, missing: 1, needsDriver: false }];
+  assert.match(formatCommanderSummary(items, { week }), /^📊 \*חוסרים במשמרות \(עדכון למפקד\) – שבוע 15\/11–21\/11:\*\n\n• יום שלישי \(17\/11\) \| משמרת בוקר - חסר 1$/);
+  assert.match(formatShortageSummary(items, { week, appUrl: 'https://x/' }), /^🚔 \*ריכוז משמרות פנויות – שבוע 15\/11–21\/11:\*/);
+  assert.match(formatCommanderSummary([], { week }), /✅ אין חוסרים בשבוע זה\./);
+});

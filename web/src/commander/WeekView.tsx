@@ -153,7 +153,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
           {waiting > 0 && <span> {waiting === 1 ? 'מתנדב אחד ממתין לאישור.' : `${waiting} ממתינים לאישור.`}</span>}
         </p>
         <div className="week-actions">
-          <ShortagesButton />
+          <ShortagesButton weekStart={week.weekStart} />
           <button className="btn btn-manual" onClick={() => setManual({})}>
             <PlusIcon size={17} strokeWidth={2.4} />
             רשום מתנדב ידני

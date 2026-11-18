@@ -194,10 +194,18 @@ adminRouter.post('/registrations/:id/cancel-request', async (req, res) => {
  * → { format, text, daysWithShortage, shiftsWithShortage, missingTotal }
  */
 adminRouter.get('/shortages', async (req, res) => {
+  // The week shown on the dashboard (any date in it; normalised to the week's first day).
+  // Without `week`: the next 7 days.
   const format = req.query.format === 'commander' ? 'commander' : 'volunteers';
+  let week: { from: string; to: string } | undefined;
+  if (typeof req.query.week === 'string') {
+    if (!isIsoDate(req.query.week)) throw new ApiError(400, 'VALIDATION', 'שבוע לא תקין.');
+    const from = normalizeWeekStart(req.query.week);
+    week = { from, to: addDays(from, 6) };
+  }
   const proto = (req.get('x-forwarded-proto') ?? req.protocol).split(',')[0].trim();
   const host = req.get('x-forwarded-host') ?? req.get('host');
-  res.json(await buildShortageSummary({ requestUrl: host ? `${proto}://${host}` : null, format }));
+  res.json(await buildShortageSummary({ requestUrl: host ? `${proto}://${host}` : null, format, week }));
 });
 
 adminRouter.get('/alerts', async (_req, res) => {

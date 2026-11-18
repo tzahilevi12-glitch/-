@@ -53,19 +53,28 @@ function openSorted(items: ShortageItem[]): ShortageItem[] {
     .sort((a, b) => (a.date === b.date ? a.startMinute - b.startMinute : a.date < b.date ? -1 : 1));
 }
 
+/** "15/11–21/11" for a week scope */
+export function weekRangeText(week: { from: string; to: string }): string {
+  const f = (iso: string) => {
+    const [, m, d] = iso.split('-').map(Number);
+    return `${d}/${m}`;
+  };
+  return `${f(week.from)}–${f(week.to)}`;
+}
+
 /**
  * Volunteers' version ("העתק חוסרים למתנדבים", also the automatic Telegram message): every open
  * shift with how many are missing and its own direct sign-up link. `items` may be in any order;
  * full shifts (missing ≤ 0) are dropped. Without an app URL the lines have no links.
  */
-export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: string | null } = {}): string {
+export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: string | null; week?: { from: string; to: string } } = {}): string {
   const open = openSorted(items);
-  const title = '🚔 *ריכוז משמרות פנויות לשבוע הקרוב:*';
+  const title = opts.week ? `🚔 *ריכוז משמרות פנויות – שבוע ${weekRangeText(opts.week)}:*` : '🚔 *ריכוז משמרות פנויות לשבוע הקרוב:*';
   const link = opts.appUrl ? `להרשמה מהירה לחצו כאן: ${opts.appUrl}` : null;
   const driver = (i: ShortageItem) => (i.needsDriver ? ', דרוש נהג 🚗' : '');
 
   if (open.length === 0) {
-    return [title, '', '✅ כל המשמרות לשבוע הקרוב מאוישות. תודה לכולם! 🙏', ...(link ? ['', link] : [])].join('\n');
+    return [title, '', opts.week ? '✅ כל המשמרות בשבוע זה מאוישות. תודה לכולם! 🙏' : '✅ כל המשמרות לשבוע הקרוב מאוישות. תודה לכולם! 🙏', ...(link ? ['', link] : [])].join('\n');
   }
 
   const lines = [title];
@@ -89,10 +98,10 @@ export function formatShortageSummary(items: ShortageItem[], opts: { appUrl?: st
  * day (with date), shift name and how many are missing. No links, no extras. Full shifts are left
  * out; extra patrol cars never count (they are not in `missing`).
  */
-export function formatCommanderSummary(items: ShortageItem[]): string {
+export function formatCommanderSummary(items: ShortageItem[], opts: { week?: { from: string; to: string } } = {}): string {
   const open = openSorted(items);
-  const title = '📊 *חוסרים במשמרות (עדכון למפקד):*';
-  if (open.length === 0) return [title, '', '✅ אין חוסרים בשבוע הקרוב.'].join('\n');
+  const title = opts.week ? `📊 *חוסרים במשמרות (עדכון למפקד) – שבוע ${weekRangeText(opts.week)}:*` : '📊 *חוסרים במשמרות (עדכון למפקד):*';
+  if (open.length === 0) return [title, '', opts.week ? '✅ אין חוסרים בשבוע זה.' : '✅ אין חוסרים בשבוע הקרוב.'].join('\n');
   return [title, '', ...open.map((i) => `• ${summaryDayLabel(i.date)} | משמרת ${SHIFT_NAME[i.shiftType]} - ${missingShort(i.missing)}`)].join('\n');
 }
 

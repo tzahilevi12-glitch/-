@@ -2,12 +2,23 @@ import { useState } from 'react';
 import { api } from '../api.ts';
 import { Sheet, toast } from '../ui.tsx';
 import { ChatIcon, CheckIcon, ClipboardIcon } from '../icons.tsx';
+import { canvasToPng, drawShortagesImage, ensureFonts, reportFileName, type ImageItem } from './shortageImage.ts';
 
 interface Summary {
   text: string;
+  today: string;
+  items: ImageItem[];
+  week: { from: string; to: string } | null;
+  draftsSkipped: number;
   daysWithShortage: number;
   shiftsWithShortage: number;
   missingTotal: number;
+}
+
+/** Draft shifts of the week aren't in the reports (volunteers can't sign up for them yet). */
+function draftsNote(s: { draftsSkipped?: number }): string {
+  if (!s.draftsSkipped) return '';
+  return s.draftsSkipped === 1 ? ' (משמרת אחת בשבוע עדיין טיוטה ולא נכללה.)' : ` (${s.draftsSkipped} משמרות בשבוע עדיין טיוטה ולא נכללו.)`;
 }
 
 /** Old-browser fallback: copy through a hidden textarea. */
@@ -44,21 +55,19 @@ const LABEL: Record<Format, string> = {
  * requested inside the click itself (ClipboardItem with a pending value), so Safari/iPhone also
  * allow the copy. If the browser still refuses, the text opens in a window with its own button.
  */
-export function ShortagesButton() {
-  const [busy, setBusy] = useState<Format | null>(null);
+/** weekStart: the week shown on the dashboard. Every export covers exactly that week. */
+export function ShortagesButton({ weekStart }: { weekStart: string }) {
+  const [busy, setBusy] = useState<Format | 'image' | null>(null);
   const [fallback, setFallback] = useState<{ summary: Summary; format: Format } | null>(null);
 
   function done(s: Summary, format: Format) {
-    const detail =
-      s.missingTotal === 0
-        ? 'אין חוסרים בשבוע הקרוב.'
-        : `${s.shiftsWithShortage} משמרות עם חוסרים.`;
-    toast(`הועתק ללוח בהצלחה! ${detail} אפשר להדביק בוואטסאפ.`);
+    const detail = s.missingTotal === 0 ? 'אין חוסרים בשבוע זה.' : `${s.shiftsWithShortage} משמרות עם חוסרים בשבוע זה.`;
+    toast(`הועתק ללוח בהצלחה! ${detail}${draftsNote(s)} אפשר להדביק בוואטסאפ.`);
   }
 
   async function copy(format: Format) {
     setBusy(format);
-    const pending = api<Summary>(`/admin/shortages?format=${format}`);
+    const pending = api<Summary>(`/admin/shortages?format=${format}&week=${weekStart}`);
     try {
       const C = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
       if (C && navigator.clipboard?.write) {
@@ -80,6 +89,53 @@ export function ShortagesButton() {
     }
   }
 
+  /**
+   * "📸 הורד תמונת חוסרים למפקד": draws the report as a PNG, downloads shortages-report-<date>.png
+   * and, where the browser allows it, also copies the image (paste straight into WhatsApp).
+   */
+  async function downloadImage() {
+    setBusy('image');
+    const pendingData = api<Summary>(`/admin/shortages?format=commander&week=${weekStart}`);
+    const pendingPng = pendingData.then(async (d) => {
+      await ensureFonts();
+      return canvasToPng(drawShortagesImage(d));
+    });
+    // Start the clipboard write inside the click itself (Safari requires it); it waits for the image.
+    let copied: Promise<boolean> = Promise.resolve(false);
+    const C = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+    if (C && navigator.clipboard?.write) {
+      try {
+        copied = navigator.clipboard.write([new C({ 'image/png': pendingPng })]).then(
+          () => true,
+          () => false,
+        );
+      } catch {
+        copied = Promise.resolve(false);
+      }
+    }
+    try {
+      const [d, png] = await Promise.all([pendingData, pendingPng]);
+      const url = URL.createObjectURL(png);
+      const a = document.createElement('a');
+      a.href = url;
+      const name = reportFileName(d.week?.from ?? weekStart);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      toast(
+        (await copied)
+          ? `התמונה הורדה והועתקה ללוח – אפשר להדביק בוואטסאפ (Ctrl+V).${draftsNote(d)}`
+          : `התמונה הורדה (${name}). אפשר לצרף אותה בוואטסאפ.${draftsNote(d)}`,
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'לא הצלחנו ליצור את התמונה.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="shortage-buttons" role="group" aria-label="העתקת חוסרים לוואטסאפ">
       <button className="btn btn-whatsapp" onClick={() => copy('volunteers')} disabled={busy !== null} title="כל משמרת פנויה עם קישור הרשמה ישיר">
@@ -89,6 +145,9 @@ export function ShortagesButton() {
       <button className="btn btn-commander-copy" onClick={() => copy('commander')} disabled={busy !== null} title="שורה לכל משמרת חסרה: יום, משמרת וכמה חסרים – בלי קישורים">
         <ClipboardIcon size={17} />
         {busy === 'commander' ? 'מכינים…' : LABEL.commander}
+      </button>
+      <button className="btn btn-image" onClick={downloadImage} disabled={busy !== null} title="תמונת PNG של החוסרים לשבוע הקרוב – להורדה ולהדבקה בוואטסאפ">
+        {busy === 'image' ? 'מכינים תמונה…' : '📸 הורד תמונת חוסרים למפקד'}
       </button>
       {fallback && (
         <FallbackSheet

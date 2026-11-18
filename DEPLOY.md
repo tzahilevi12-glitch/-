@@ -178,9 +178,11 @@ Open **Logs** on the `police-volunteers` service and look for lines starting wit
 
 ## Weekly shortage summary (ריכוז חוסרים) for WhatsApp
 
-### The two copy buttons (work right away)
+### The shortage buttons (work right away)
 
-On the commander dashboard (`/#/commander`) there are two buttons side by side. Each builds the list for the next 7 days at that moment and copies it. Then paste it into WhatsApp.
+All three buttons report on **the week shown on the dashboard**, the one you've moved to with the arrows, and only that week. Switch weeks to get another week's report.
+
+On the commander dashboard (`/#/commander`) there are three buttons side by side. Each builds the report at that moment.
 
 - **העתק חוסרים למתנדבים** (green), for the volunteers' group: every shift that still has empty regular places, with how many are missing and its own sign-up link. Tapping a link opens the sign-up for exactly that shift, going through sign-in first if needed.
   ```
@@ -199,7 +201,9 @@ On the commander dashboard (`/#/commander`) there are two buttons side by side. 
   • יום שלישי (17/11) | משמרת צהריים - חסרים 2
   ```
 
-Both cover published shifts in the next 7 days that haven't started yet. Full shifts and days are left out, and extra patrol cars never count. In the volunteers' list, a shift that still needs a driver says "דרוש נהג 🚗". The `*stars*` turn into **bold** in WhatsApp. If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
+- **📸 הורד תמונת חוסרים למפקד**: the same commander list as a clear PNG picture (dark navy card with the title "🚔 חוסרים במשמרות | יחידת מתנדבים", today's date, one row per shift with a red pill when 2 or more are missing or an orange pill when 1 is missing, and the week's total). Its subtitle shows the week ("שבוע 15/11 – 21/11 | נכון לתאריך: …") and the footer "סה״כ חוסרים בשבוע זה". It downloads as `shortages-week-YYYY-MM-DD.png` (the week's first day) and, in browsers that allow it (Chrome, Edge, Safari), is also copied, so you can paste it straight into WhatsApp Web with Ctrl+V. On a phone, attach the downloaded picture from your gallery or downloads.
+
+All three cover the shown week's published shifts that haven't started yet. Draft (unpublished) shifts aren't included, and the confirmation message says how many were skipped. Full shifts and days are left out, and extra patrol cars never count. In the volunteers' list, a shift that still needs a driver says "דרוש נהג 🚗". The `*stars*` turn into **bold** in WhatsApp. If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
 
 ### Automatic message to Telegram every 2 days at 10:00
 
