@@ -910,3 +910,15 @@ button { font: inherit; color: inherit; }
   .shortage-buttons .btn { flex: 1 1 40%; }
   .shortage-buttons .btn-image { flex-basis: 100%; min-height: 46px; }
 }
+/* copy-image button + small "⬇️ הורד PNG" link */
+.image-export { display: inline-flex; align-items: center; gap: 6px; }
+.link-small {
+  background: none; border: none; padding: 6px 4px; font: inherit; font-size: 0.82rem; font-weight: 600;
+  color: var(--police); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap;
+}
+.link-small:disabled { opacity: 0.5; cursor: default; }
+.image-preview { display: block; width: 100%; margin-top: 10px; border-radius: var(--r-md); box-shadow: var(--shadow); }
+@media (max-width: 640px) {
+  .shortage-buttons .image-export { flex-basis: 100%; }
+  .shortage-buttons .image-export .btn-image { flex: 1; min-height: 46px; }
+}

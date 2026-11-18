@@ -15,6 +15,59 @@ interface Summary {
   missingTotal: number;
 }
 
+/** Can this browser share an image file (phones: WhatsApp share sheet)? */
+function canShareFile(file: File): boolean {
+  try {
+    return typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+  } catch {
+    return false;
+  }
+}
+
+/** Save a blob as a file (download). */
+function saveFile(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+/** When the phone won't open the share sheet automatically: preview + share / download buttons. */
+function ImageFallbackSheet({ png, name, file, onClose }: { png: Blob; name: string; file: File; onClose: () => void }) {
+  const [url] = useState(() => URL.createObjectURL(png));
+  const canShare = canShareFile(file);
+  async function share() {
+    try {
+      await navigator.share({ files: [file], title: 'חוסרים במשמרות' });
+      onClose();
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast('השיתוף נכשל – אפשר להוריד את התמונה.', 'error');
+    }
+  }
+  return (
+    <Sheet title="תמונת חוסרים למפקד" onClose={() => { URL.revokeObjectURL(url); onClose(); }}>
+      <div className="sheet-body">
+        <p className="muted small">הדפדפן לא אישר העתקה אוטומטית. אפשר לשתף ישירות לוואטסאפ או להוריד את התמונה.</p>
+        <img className="image-preview" src={url} alt="תמונת חוסרים במשמרות לשבוע המוצג" />
+      </div>
+      <div className="sheet-foot sheet-foot-split">
+        {canShare && (
+          <button className="btn btn-whatsapp" onClick={share}>
+            שיתוף (וואטסאפ)
+          </button>
+        )}
+        <button className="btn btn-ghost" onClick={() => { saveFile(png, name); toast(`התמונה הורדה (${name}).`); }}>
+          ⬇️ הורד PNG
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 /** Draft shifts of the week aren't in the reports (volunteers can't sign up for them yet). */
 function draftsNote(s: { draftsSkipped?: number }): string {
   if (!s.draftsSkipped) return '';
@@ -58,6 +111,7 @@ const LABEL: Record<Format, string> = {
 /** weekStart: the week shown on the dashboard. Every export covers exactly that week. */
 export function ShortagesButton({ weekStart }: { weekStart: string }) {
   const [busy, setBusy] = useState<Format | 'image' | null>(null);
+  const [imageFallback, setImageFallback] = useState<{ png: Blob; name: string; file: File } | null>(null);
   const [fallback, setFallback] = useState<{ summary: Summary; format: Format } | null>(null);
 
   function done(s: Summary, format: Format) {
@@ -89,52 +143,77 @@ export function ShortagesButton({ weekStart }: { weekStart: string }) {
     }
   }
 
+  /** Draw this week's report as a PNG (and the file name / data it belongs to). */
+  async function buildPng(): Promise<{ png: Blob; name: string; data: Summary }> {
+    const data = await api<Summary>(`/admin/shortages?format=commander&week=${weekStart}`);
+    await ensureFonts();
+    const png = await canvasToPng(drawShortagesImage(data));
+    return { png, name: reportFileName(data.week?.from ?? weekStart), data };
+  }
+
   /**
-   * "📸 הורד תמונת חוסרים למפקד": draws the report as a PNG, downloads shortages-report-<date>.png
-   * and, where the browser allows it, also copies the image (paste straight into WhatsApp).
+   * "📋 העתק תמונת חוסרים למפקד":
+   *  1. copy the PNG to the clipboard (paste with Ctrl+V into WhatsApp);
+   *  2. if the browser blocks that (mostly phones): open the phone's share sheet with the image;
+   *  3. otherwise: download shortages-week-<date>.png.
+   * If the phone refuses to open the share sheet automatically, a small window offers
+   * "שיתוף" / "הורד PNG" (a fresh tap is always allowed).
    */
-  async function downloadImage() {
+  async function copyImage() {
     setBusy('image');
-    const pendingData = api<Summary>(`/admin/shortages?format=commander&week=${weekStart}`);
-    const pendingPng = pendingData.then(async (d) => {
-      await ensureFonts();
-      return canvasToPng(drawShortagesImage(d));
-    });
-    // Start the clipboard write inside the click itself (Safari requires it); it waits for the image.
-    let copied: Promise<boolean> = Promise.resolve(false);
+    const pending = buildPng();
+    pending.catch(() => undefined);
+    let copiedOk = false;
     const C = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
     if (C && navigator.clipboard?.write) {
       try {
-        copied = navigator.clipboard.write([new C({ 'image/png': pendingPng })]).then(
-          () => true,
-          () => false,
-        );
+        // The write starts inside the click (Safari requires it) and waits for the image.
+        await navigator.clipboard.write([new C({ 'image/png': pending.then((r) => r.png) })]);
+        copiedOk = true;
       } catch {
-        copied = Promise.resolve(false);
+        copiedOk = false;
       }
     }
     try {
-      const [d, png] = await Promise.all([pendingData, pendingPng]);
-      const url = URL.createObjectURL(png);
-      const a = document.createElement('a');
-      a.href = url;
-      const name = reportFileName(d.week?.from ?? weekStart);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      toast(
-        (await copied)
-          ? `התמונה הורדה והועתקה ללוח – אפשר להדביק בוואטסאפ (Ctrl+V).${draftsNote(d)}`
-          : `התמונה הורדה (${name}). אפשר לצרף אותה בוואטסאפ.${draftsNote(d)}`,
-      );
+      const r = await pending;
+      if (copiedOk) {
+        toast(`✅ התמונה הועתקה ללוח! כעת ניתן להדביק (Ctrl+V) בוואטסאפ${draftsNote(r.data)}`);
+        return;
+      }
+      const file = new File([r.png], r.name, { type: 'image/png' });
+      if (canShareFile(file)) {
+        try {
+          await navigator.share({ files: [file], title: 'חוסרים במשמרות' });
+          return;
+        } catch (e) {
+          if ((e as Error).name === 'AbortError') return; // the user closed the share sheet
+          setImageFallback({ ...r, file }); // share not allowed without a fresh tap
+          return;
+        }
+      }
+      saveFile(r.png, r.name);
+      toast(`הדפדפן לא מאפשר העתקת תמונה – התמונה הורדה (${r.name}). אפשר לצרף אותה בוואטסאפ.${draftsNote(r.data)}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'לא הצלחנו ליצור את התמונה.', 'error');
     } finally {
       setBusy(null);
     }
   }
+
+  /** "⬇️ הורד PNG": just save the file. */
+  async function downloadPng() {
+    setBusy('image');
+    try {
+      const r = await buildPng();
+      saveFile(r.png, r.name);
+      toast(`התמונה הורדה (${r.name}).${draftsNote(r.data)}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'לא הצלחנו ליצור את התמונה.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  }
+
 
   return (
     <div className="shortage-buttons" role="group" aria-label="העתקת חוסרים לוואטסאפ">
@@ -146,9 +225,20 @@ export function ShortagesButton({ weekStart }: { weekStart: string }) {
         <ClipboardIcon size={17} />
         {busy === 'commander' ? 'מכינים…' : LABEL.commander}
       </button>
-      <button className="btn btn-image" onClick={downloadImage} disabled={busy !== null} title="תמונת PNG של החוסרים לשבוע הקרוב – להורדה ולהדבקה בוואטסאפ">
-        {busy === 'image' ? 'מכינים תמונה…' : '📸 הורד תמונת חוסרים למפקד'}
-      </button>
+      <span className="image-export">
+        <button className="btn btn-image" onClick={copyImage} disabled={busy !== null} title="תמונת PNG של החוסרים בשבוע המוצג – להדבקה בוואטסאפ">
+          {busy === 'image' ? 'מכינים תמונה…' : '📋 העתק תמונת חוסרים למפקד'}
+        </button>
+        <button className="link-small" onClick={downloadPng} disabled={busy !== null} title="שמירת התמונה כקובץ PNG">
+          ⬇️ הורד PNG
+        </button>
+      </span>
+      {imageFallback && (
+        <ImageFallbackSheet
+          {...imageFallback}
+          onClose={() => setImageFallback(null)}
+        />
+      )}
       {fallback && (
         <FallbackSheet
           summary={fallback.summary}

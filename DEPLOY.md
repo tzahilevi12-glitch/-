@@ -201,7 +201,11 @@ On the commander dashboard (`/#/commander`) there are three buttons side by side
   • יום שלישי (17/11) | משמרת צהריים - חסרים 2
   ```
 
-- **📸 הורד תמונת חוסרים למפקד**: the same commander list as a clear PNG picture (dark navy card with the title "🚔 חוסרים במשמרות | יחידת מתנדבים", today's date, one row per shift with a red pill when 2 or more are missing or an orange pill when 1 is missing, and the week's total). Its subtitle shows the week ("שבוע 15/11 – 21/11 | נכון לתאריך: …") and the footer "סה״כ חוסרים בשבוע זה". It downloads as `shortages-week-YYYY-MM-DD.png` (the week's first day) and, in browsers that allow it (Chrome, Edge, Safari), is also copied, so you can paste it straight into WhatsApp Web with Ctrl+V. On a phone, attach the downloaded picture from your gallery or downloads.
+- **📋 העתק תמונת חוסרים למפקד**: the commander list as a clear PNG picture (dark navy card titled "🚔 חוסרים במשמרות | יחידת מתנדבים", with the subtitle "שבוע 15/11 – 21/11 | נכון לתאריך: …", one row per shift with a red pill when 2 or more are missing or an orange pill when 1 is missing, and "סה״כ חוסרים בשבוע זה").
+  - **On a computer** (Chrome, Edge, Safari) the picture is copied: "✅ התמונה הועתקה ללוח!" appears, and you paste it into WhatsApp Web with **Ctrl+V**.
+  - **On a phone**, where browsers usually don't allow copying pictures, the phone's share menu opens with the picture, so you can choose WhatsApp. If the phone doesn't allow the menu to open by itself, a small window shows the picture with **שיתוף (וואטסאפ)** and **⬇️ הורד PNG** buttons.
+  - **On a browser that can do neither**, the picture is downloaded.
+  - **⬇️ הורד PNG**, the small link next to the button, always saves the picture as `shortages-week-YYYY-MM-DD.png` (the week's first day).
 
 All three cover the shown week's published shifts that haven't started yet. Draft (unpublished) shifts aren't included, and the confirmation message says how many were skipped. Full shifts and days are left out, and extra patrol cars never count. In the volunteers' list, a shift that still needs a driver says "דרוש נהג 🚗". The `*stars*` turn into **bold** in WhatsApp. If a browser doesn't allow copying, a window opens with the text and its own **העתקה** button.
 
