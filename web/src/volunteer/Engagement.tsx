@@ -105,12 +105,18 @@ function hoursText(minutes: number): string {
 function LeadersList({ top }: { top: LeaderboardEntry[] }) {
   return (
     <ol className="leaders-list">
-      {top.slice(0, 3).map((t) => (
+      {top.slice(0, 5).map((t) => (
         <li key={t.rank} className={`leaders-row rank-${t.rank}`}>
           <span className="leaders-rank">
-            <span className="leaders-medal" aria-hidden="true">
-              {MEDAL[t.rank - 1]}
-            </span>
+            {t.rank <= 3 ? (
+              <span className="leaders-medal" aria-hidden="true">
+                {MEDAL[t.rank - 1]}
+              </span>
+            ) : (
+              <span className="leaders-num-badge" aria-hidden="true">
+                {t.rank}
+              </span>
+            )}
             <span className="leaders-place">מקום {t.rank}</span>
           </span>
           <span className="leaders-who">
@@ -130,7 +136,7 @@ function LeadersList({ top }: { top: LeaderboardEntry[] }) {
 }
 
 /**
- * "🏆 טופ 3 מובילים - <month>": the 3 volunteers with the most shifts this calendar month
+ * "🏆 טופ 5 מובילים החודש - <month>": the 5 volunteers with the most shifts this calendar month
  * (self sign-ups and manual registrations, regular slots and extra patrol cars). Starts fresh on
  * the 1st of every month (Israel time).
  *   variant "sidebar": compact sticky navy panel beside the board (wide screens);
@@ -142,7 +148,7 @@ export function MonthLeaders({ data, variant }: { data: MonthLeadersData | null;
   return (
     <aside className={`leaders leaders-${variant}`} aria-labelledby={id}>
       <h2 id={id} className="leaders-title">
-        🏆 טופ 3 מובילים - {monthName(data.month)}
+        🏆 טופ 5 מובילים החודש - {monthName(data.month)}
       </h2>
       {data.top.length === 0 ? (
         <p className="leaders-empty">החודש רק התחיל – הירשמו למשמרת ותופיעו כאן!</p>

@@ -1,7 +1,7 @@
 /**
  * Engagement helpers (pure, tested):
  *  - urgent shifts: starting within the next 48 hours and still short of regular volunteers;
- *  - "טופ 3 מובילים": top volunteers of the calendar month by number of shifts (hours break ties).
+ *  - "טופ 5 מובילים החודש": top volunteers of the calendar month by number of shifts (hours break ties).
  */
 
 export const URGENT_WINDOW_MINUTES = 48 * 60;

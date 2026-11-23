@@ -33,7 +33,7 @@ test('leaderboard: most shifts first, hours break ties, top 10', () => {
   ]);
   const many = Array.from({ length: 14 }, (_, i) => e(`u${i}`, `מתנדב ${i}`, 300 + i));
   assert.equal(rankVolunteers(many).length, 10);
-  assert.equal(rankVolunteers(many, 3).length, 3); // the board shows the top 3
+  assert.equal(rankVolunteers(many, 5).length, 5); // the board shows the top 5
   assert.deepEqual(rankVolunteers([]), []);
 });
 
