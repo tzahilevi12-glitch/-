@@ -5,6 +5,7 @@ import { authenticate, requireAdmin } from './middleware/auth.ts';
 import { shiftsRouter, meRouter } from './routes/shifts.ts';
 import { adminRouter } from './routes/admin.ts';
 import { publicRouter } from './routes/public.ts';
+import { assistantRouter } from './routes/assistant.ts';
 import { errorHandler } from './lib/errors.ts';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../web/dist');
@@ -18,6 +19,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/public', publicRouter); // no auth
+app.use('/api/assistant', assistantRouter); // guests welcome; uses the sign-in when there is one
 app.use('/api', authenticate);
 app.use('/api/me', meRouter);
 app.use('/api/shifts', shiftsRouter);

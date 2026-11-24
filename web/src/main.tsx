@@ -1,6 +1,8 @@
 import './app.css';
-import './theme-tactical.css';
-import './theme-nextgen.css'; // dark tactical theme (overrides tokens + glass + motion)
+import './theme-tactical.css'; // dark tactical theme (overrides tokens + glass)
+import './theme-nextgen.css'; // next-gen motion + depth layer
+import './assistant.css'; // 🤖 עוזרת חמ״ל
+import { AssistantWidget } from './Assistant.tsx';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { getSession, isCommanderHash } from './api.ts';
@@ -69,6 +71,7 @@ createRoot(document.getElementById('root')!).render(
   <>
     <Ambient />
     <App />
+    <AssistantWidget />
     <Toaster />
   </>,
 );

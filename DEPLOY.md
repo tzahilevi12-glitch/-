@@ -253,3 +253,7 @@ On a paid Render plan ("Starter"), the site never sleeps and sends on time by it
 You don't need new settings or database changes. Upload the new files the usual way and Render rebuilds the site on its own.
 
 After the deploy, if the site still looks light, refresh the page once. On a phone, close the tab and open it again.
+
+## 🤖 עוזרת חמ״ל (shift assistant)
+
+You don't need to set anything up. There are no new settings, no API keys and no database changes. After you upload the new files, the round 🤖 button appears in the bottom-left corner of every screen.

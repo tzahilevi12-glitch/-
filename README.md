@@ -92,7 +92,36 @@ To turn the motion layer off, remove the `import './theme-nextgen.css'` line in 
 | Telegram push | After every successful volunteer sign-up (including waitlist), the server sends a Hebrew message to the commanders' Telegram group (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; comma-separated IDs allowed). It is sent only after the registration is committed, is fire-and-forget with a 10 s timeout, and never fails the sign-up. Missing settings or Telegram errors are only logged (`src/lib/telegram.ts`). |
 | Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |
 
+## 🤖 עוזרת חמ״ל (shift assistant)
+
+A floating button in the bottom-left corner of every screen (volunteer, guest view and commander) opens a chat drawer. On phones the button is a round icon and the drawer becomes a bottom sheet.
+
+The assistant answers Hebrew questions from live database data. It has no AI service, no API keys, and no extra cost. It recognises keywords in the question; the logic is in `src/domain/assistant.ts` with tests in `src/domain/assistant.test.ts`.
+
+**Quick-tap chips:**
+- 🚨 איפה חסר נהג השבוע?
+- 📅 אילו משמרות פנויות השבוע?
+- 🏆 מי בטופ 5 החודש?
+- 📋 מה חוקי הרישום והביטול?
+
+**Free-text questions it understands:**
+
+| Topic | Example keywords | Answer |
+|---|---|---|
+| Shortages | נהג, דחוף, חוסר, חסר | Shifts with no driver and shifts with open regular places, by day and shift. Urgent ones (within 48 hours) are marked ⏰. |
+| Available shifts | פנוי, פנויות, שיבוץ, להשתבץ | Published shifts with free places, plus a note on opening an extra patrol car (personalised for שלב ב'/ג'). Days where the volunteer already has a shift are marked. |
+| My shifts | שלי, כמה עשיתי, יש לי משמרת | Upcoming shifts, plus this month's approved shifts and how many are done. Guests get a sign-in prompt; the commander gets an explanation. |
+| Top 5 | טופ, מובילים, דירוג | The live monthly leaderboard. |
+| Rules | חוקים, ביטול, מקוצרת, ניידת, שלב, מינימום | Levels, 3-hour minimum, the 12-hour cancellation rule, short shifts, extra patrol car, waitlist. |
+| Not understood | — | The list of topics, with clickable suggestions. |
+
+The shortage and available-shift answers cover the next 7 days. Adding "היום", "מחר" or "שבוע הבא" narrows or moves the range.
+
+Answers about shifts include up to three green "שריין" buttons that open that shift's sign-up on the board. A guest goes through sign-in first. The buttons don't appear on the commander dashboard. The rule numbers in the answers come from the same constants the server enforces, so they never drift.
+
 ## API
+
+Assistant: `POST /api/assistant/ask {question}` → `{intent, answer, suggestions, actions?, needsLogin?}`. It is open to guests; a sign-in token, if sent, personalises the answer, and an unknown token is treated as a guest, never a 401.
 
 Public: `GET /api/public/board` (read-only, for guests), `POST /api/public/enter {fullName, hasDrivingChip, certification}`, `POST /api/public/commander {fullName, pin}` → `{token}` (send it as `Authorization: Bearer`).
 
