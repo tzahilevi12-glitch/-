@@ -5,6 +5,7 @@ import { CancelRequests } from './CancelRequests.tsx';
 import { Volunteers } from './Volunteers.tsx';
 import { WeekView } from './WeekView.tsx';
 import { Avatar, Brand } from '../ui.tsx';
+import { HeroBanner } from '../Hero.tsx';
 import { CalendarIcon, LogOutIcon, UsersIcon } from '../icons.tsx';
 
 export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
@@ -44,6 +45,9 @@ export function CommanderApp({ tab }: { tab: 'roster' | 'volunteers' }) {
         </span>
       </header>
       <main>
+        <div className="cmd-hero-wrap">
+          <HeroBanner subtitle="מרכז שליטה · מזין המשמרות" compact />
+        </div>
         <CancelRequests refreshKey={refreshKey} onChanged={onNewAlert} />
         {tab === 'roster' ? <WeekView refreshKey={refreshKey} onChanged={onNewAlert} /> : <Volunteers refreshKey={refreshKey} />}
       </main>

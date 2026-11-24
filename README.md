@@ -25,6 +25,22 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 - Volunteer app: `http://localhost:3000/`
 - Commander: `http://localhost:3000/#/commander` (any name + `COMMANDER_PIN`)
 
+## Look and feel
+
+The app uses a dark "tactical command center" theme. The styles live in `web/src/theme-tactical.css`, which loads after `app.css` and only overrides it. To go back to the old light theme, remove the `import './theme-tactical.css'` line in `web/src/main.tsx`.
+
+- **Background and cards:** dark navy background with a soft blue and red glow. Cards are frosted-glass panels.
+- **Status colours:** green means full, amber means partly short, and red means urgent or a driver is needed.
+- **Hero banner:** "יחידת מתנדבים | תחנת חולון", with a drawn patrol car, a flashing lightbar and a shield.
+- **Graphics:** every picture is inline SVG. There are no image files and no external image links. The only outside resource is the Rubik font, and the app falls back to system fonts if it doesn't load.
+- **Animations:**
+  - **Pulsing red border:** shifts starting within 48 hours that are short of volunteers or a driver. Driver gaps further out get a steady red ring instead.
+  - **Cards fade in** one after another when the board loads or the week changes.
+  - **Small lift** on hover.
+  - **Gold shimmer** on the #1 leader.
+  - **Animated checkmark toast** after signing up or cancelling.
+  - **Reduced motion:** all animations switch off when the phone or computer is set to reduce motion.
+
 ## Screens
 
 **Volunteer (phone-first)**

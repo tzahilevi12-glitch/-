@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { MyShifts } from './MyShifts.tsx';
 import { Profile } from './Profile.tsx';
 import { ShiftBoard } from './ShiftBoard.tsx';
+import { HeroBanner } from '../Hero.tsx';
 
 type Tab = 'mine' | 'board' | 'profile';
 
@@ -83,6 +84,7 @@ export function VolunteerApp({ tab }: { tab: Tab }) {
       </header>
 
       <main className="site-main">
+        <HeroBanner subtitle={tab === 'board' ? 'לוח משמרות · הרשמה מהירה למשמרות פנויות' : tab === 'mine' ? 'המשמרות שלי' : 'הפרופיל שלי'} />
         {tab === 'mine' && <MyShifts isDriver={me.hasDrivingChip} name={me.fullName} />}
         {tab === 'board' && <ShiftBoard isDriver={me.hasDrivingChip} certification={me.certification ?? 'NONE'} />}
         {tab === 'profile' && <Profile me={me} onSaved={setData} />}

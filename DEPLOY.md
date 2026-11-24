@@ -247,3 +247,9 @@ The site is called every day, but it sends the list only **every 2 days**. It re
 | `APP_URL` | your Render address | The sign-up link at the bottom of the list, if you use your own domain |
 
 On a paid Render plan ("Starter"), the site never sleeps and sends on time by itself. Step 2 then isn't needed, but it doesn't hurt.
+
+## Updating to the dark "command center" design
+
+You don't need new settings or database changes. Upload the new files the usual way and Render rebuilds the site on its own.
+
+After the deploy, if the site still looks light, refresh the page once. On a phone, close the tab and open it again.

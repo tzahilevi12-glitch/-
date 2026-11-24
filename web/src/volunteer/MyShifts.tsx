@@ -4,7 +4,7 @@ import { bookShift } from '../deepLink.ts';
 import { UrgentBanner } from './Engagement.tsx';
 import type { BoardShift, MyShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, inWindow, ltr, minutesUntil, range, shortDay, windowOf } from '../format.ts';
-import { DutyBar, LoadState, NewCarTag, Sheet, useLoad } from '../ui.tsx';
+import { DutyBar, LoadState, NewCarTag, Sheet, toast, useLoad } from '../ui.tsx';
 import { CalendarIcon, ClipboardIcon, ClockIcon, HourglassIcon, SendIcon, ShiftTypeIcon, TimerIcon, XIcon } from '../icons.tsx';
 
 const FREE_CANCEL_MINUTES = 12 * 60;
@@ -47,9 +47,11 @@ function CancelDialog({ s, kind: initialKind, onClose, onChanged }: { s: MyShift
       if (kind === 'cancel') {
         await api(`/shifts/${s.shiftId}/registrations/me`, { method: 'DELETE' });
         setDone('cancelled');
+        toast(isWaitlist ? 'יצאת מרשימת ההמתנה.' : 'ההרשמה בוטלה.');
       } else {
         const r = await api<{ outcome: 'REQUESTED' | 'CANCELLED' }>(`/shifts/${s.shiftId}/registrations/me/cancel-request`, { method: 'POST' });
         setDone(r.outcome === 'CANCELLED' ? 'cancelled' : 'requested');
+        toast(r.outcome === 'CANCELLED' ? 'ההרשמה בוטלה.' : 'בקשת הביטול נשלחה למזין המשמרות.');
       }
       onChanged();
     } catch (e) {

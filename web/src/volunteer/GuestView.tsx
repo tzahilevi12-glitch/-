@@ -1,4 +1,5 @@
 import { ShiftBoard } from './ShiftBoard.tsx';
+import { HeroBanner } from '../Hero.tsx';
 import { Brand } from '../ui.tsx';
 import { EyeIcon, UserIcon } from '../icons.tsx';
 
@@ -20,6 +21,7 @@ export function GuestView() {
         </div>
       </header>
       <main className="site-main">
+        <HeroBanner subtitle="צפייה בלוח המשמרות" />
         <ShiftBoard readOnly />
       </main>
     </div>

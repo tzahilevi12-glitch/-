@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
 import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, range, windowOf } from './format.ts';
-import { CarFrontIcon, CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, TimerIcon, WheelIcon, XIcon } from './icons.tsx';
+import { CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, TimerIcon, WheelIcon, XIcon } from './icons.tsx';
 
 // ───────────── icons (see icons.tsx) ─────────────
 
@@ -70,9 +70,19 @@ export function CertMark({ certification, compact }: { certification: Certificat
   const tone = CERT_TONE[c];
   return (
     <span className={`cert-badge cert-${tone}${compact ? ' is-compact' : ''}`} title={CERT_LABEL[c]} aria-label={CERT_LABEL[c]}>
-      <span className="cert-dot" aria-hidden="true" />
+      <CertShield />
       {compact ? CERT_CODE[c] : CERT_BADGE_TEXT[c]}
     </span>
+  );
+}
+
+/** Small filled shield in the badge's colour (qualification level). */
+export function CertShield() {
+  return (
+    <svg className="cert-shield" viewBox="0 0 16 18" aria-hidden="true" focusable="false">
+      <path d="M8 1 L14.5 3.4 L14.5 8.6 C14.5 12.6 11.6 15.6 8 17 C4.4 15.6 1.5 12.6 1.5 8.6 L1.5 3.4 Z" fill="currentColor" />
+      <path d="M5 8.6 L7.2 10.8 L11 6.8" fill="none" stroke="#0b1a30" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -80,7 +90,7 @@ export function CertMark({ certification, compact }: { certification: Certificat
 export function DriverBadge({ compact }: { compact?: boolean }) {
   return (
     <span className={`driver-badge${compact ? ' is-compact' : ''}`} title="יש צ'יפ נהיגה" aria-label="יש צ'יפ נהיגה">
-      <CarFrontIcon size={compact ? 12 : 13} strokeWidth={2.4} />
+      <WheelIcon size={compact ? 13 : 14} strokeWidth={2.4} />
       {!compact && 'נהג'}
     </span>
   );
@@ -108,15 +118,15 @@ export function BadgeLegend() {
     <div className="badge-legend" aria-label="מקרא">
       <span className="badge-legend-title">מקרא:</span>
       <span className="cert-badge cert-blue">
-        <span className="cert-dot" />
+        <CertShield />
         אק״מ / שלב א'
       </span>
       <span className="cert-badge cert-green">
-        <span className="cert-dot" />
+        <CertShield />
         שלב ב'
       </span>
       <span className="cert-badge cert-red">
-        <span className="cert-dot" />
+        <CertShield />
         שלב ג'
       </span>
       <DriverBadge />
@@ -269,7 +279,18 @@ export function Toaster() {
     <div className="toast-region" role="status" aria-live="polite">
       {t && (
         <div key={t.id} className={`toast toast-${t.tone}`}>
-          {t.message}
+          {t.tone === 'error' ? (
+            <svg className="toast-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 7v6M12 16.5v.5" />
+            </svg>
+          ) : (
+            <svg className="toast-icon toast-check" viewBox="0 0 24 24" aria-hidden="true">
+              <circle className="toast-check-ring" cx="12" cy="12" r="10" />
+              <path className="toast-check-mark" d="M7 12.5l3.2 3.2L17 9" />
+            </svg>
+          )}
+          <span>{t.message}</span>
         </div>
       )}
     </div>

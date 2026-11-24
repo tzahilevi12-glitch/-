@@ -1,4 +1,5 @@
 import './app.css';
+import './theme-tactical.css'; // dark tactical theme (overrides tokens + glass + motion)
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { getSession, isCommanderHash } from './api.ts';

@@ -20,9 +20,12 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
   const more = regular.length - shown.length;
   const green = shift.driverAlert === 'GREEN';
   const registered = shift.seatsTaken;
+  // Pulse: published, starts within 48 hours, and short of volunteers or of a driver.
+  const startsIn = (new Date(`${shift.date}T${shift.startTime}:00`).getTime() - Date.now()) / 60_000;
+  const urgent = shift.published && startsIn > 0 && startsIn <= 48 * 60 && (shift.seatsLeft > 0 || shift.driverAlert === 'RED');
   return (
     <button
-      className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}`}
+      className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}${urgent ? ' is-urgent' : ''}`}
       onClick={onOpen}
       aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}${cars.length ? `, ${cars.length} ניידות נוספות` : ''}`}
     >
@@ -207,7 +210,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
       <BadgeLegend />
 
       <div className="grid-scroll">
-        <div className="roster" role="table" aria-label="לוח שבועי">
+        <div className="roster" role="table" aria-label="לוח שבועי" key={week.weekStart}>
           <div className="roster-row roster-days" role="row">
             <span role="columnheader" />
             {days.map((d) => (

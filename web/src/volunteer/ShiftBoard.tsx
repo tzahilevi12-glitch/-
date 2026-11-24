@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { bookShift, takePendingShift } from '../deepLink.ts';
 import { MonthLeaders, UrgentBanner, useMonthLeaders } from './Engagement.tsx';
 import { api } from '../api.ts';
@@ -103,8 +103,8 @@ export function ShiftBoard({
         </div>
       )}
 
-      {[...days].map(([date, shifts]) => (
-        <div key={date} className="day">
+      {[...days].map(([date, shifts], dayIndex) => (
+        <div key={date} className="day" style={{ '--i': Math.min(dayIndex, 8) } as CSSProperties}>
           <h2 className="day-head">
             <CalendarIcon size={17} />
             {dayHeading(date)}
@@ -118,8 +118,12 @@ export function ShiftBoard({
               const carPeople = (s.registeredPeople ?? []).filter((p) => p.opensNewCar);
               const regularCount = s.registeredPeople ? regularPeople.length : s.registeredCount;
               const full = s.seatsLeft === 0;
+              // Pulse only what is really urgent (next 48 h, short of volunteers or of a driver);
+              // a driver gap further ahead gets a steady crimson outline instead.
+              const soon = typeof s.startsInMinutes === 'number' && s.startsInMinutes > 0 && s.startsInMinutes <= 48 * 60;
+              const alert = s.urgent || (soon && s.driverAlert === 'RED') ? ' is-urgent' : s.driverAlert === 'RED' && !full ? ' has-driver-gap' : '';
               return (
-                <li key={s.id} id={`shift-${s.id}`} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}`}>
+                <li key={s.id} id={`shift-${s.id}`} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}${alert}`}>
                   <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
                     <ShiftTypeIcon type={s.shiftType} size={22} />
                   </span>
