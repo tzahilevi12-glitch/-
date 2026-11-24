@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
-import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, Sheet, ShortShiftBadge, toast, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LiveBeacon, LoadState, Sheet, ShortShiftBadge, StaffingBar, toast, useLoad } from '../ui.tsx';
 import { AlertIcon, CalendarIcon, ChevronIcon, ClockIcon, MegaphoneIcon, PlusIcon, ShiftTypeIcon, UsersIcon, HourglassIcon } from '../icons.tsx';
 import { AddShiftsDialog } from './AddShiftsDialog.tsx';
 import { ShortagesButton } from './ShortagesButton.tsx';
@@ -12,7 +12,7 @@ import { ShiftPanel } from './ShiftPanel.tsx';
 const defaultStart: Record<ShiftType, string> = { MORNING: '06:00', EVENING: '14:30', NIGHT: '21:30' };
 const defaultEnd: Record<ShiftType, string> = { MORNING: '15:00', EVENING: '22:00', NIGHT: '07:00' };
 
-function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
+function Cell({ shift, onOpen, index = 0 }: { shift: RosterShift; onOpen: () => void; index?: number }) {
   // Extra patrol cars run in parallel: they are listed separately and never count toward the regular slots.
   const regular = shift.approved.filter((p) => !p.opensNewCar);
   const cars = shift.approved.filter((p) => p.opensNewCar);
@@ -25,6 +25,7 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
   const urgent = shift.published && startsIn > 0 && startsIn <= 48 * 60 && (shift.seatsLeft > 0 || shift.driverAlert === 'RED');
   return (
     <button
+      style={{ '--c': index } as CSSProperties}
       className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}${urgent ? ' is-urgent' : ''}`}
       onClick={onOpen}
       aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}${cars.length ? `, ${cars.length} ניידות נוספות` : ''}`}
@@ -33,10 +34,9 @@ function Cell({ shift, onOpen }: { shift: RosterShift; onOpen: () => void }) {
         <UsersIcon size={14} />
         רשומים <strong>{registered}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
       </span>
-      <span className="ratio-bar" aria-hidden="true">
-        <span style={{ width: `${Math.min(100, (registered / Math.max(1, shift.maxVolunteers)) * 100)}%` }} />
-      </span>
+      <StaffingBar filled={registered} total={shift.maxVolunteers} critical={urgent} />
       <span className="cell-top">
+        {urgent && <LiveBeacon title={shift.driverAlert === 'RED' ? 'דחוף · חסר נהג' : 'דחוף · ב-48 השעות הקרובות'} />}
         <span className={`lamp lamp-${shift.driverAlert.toLowerCase()}`}>{green ? 'יש נהג' : 'אין נהג'}</span>
       </span>
       <span className="cell-names">
@@ -219,7 +219,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
               </span>
             ))}
           </div>
-          {SHIFT_TYPES.map((t) => (
+          {SHIFT_TYPES.map((t, ti) => (
             <div key={t} className="roster-row" role="row">
               <span role="rowheader" className="roster-type">
                 <span className={`shift-icon shift-icon-sm type-icon-${t.toLowerCase()}`}>
@@ -231,12 +231,12 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
                   {range(defaultStart[t], defaultEnd[t])}
                 </span>
               </span>
-              {days.map((d) => {
+              {days.map((d, di) => {
                 const s = byKey.get(`${d}|${t}`);
                 return (
                   <div key={d} role="cell" className={`roster-cell${d < today ? ' is-past' : ''}`}>
                     {s ? (
-                      <Cell shift={s} onOpen={() => setOpenId(s.id)} />
+                      <Cell shift={s} index={ti * 7 + di} onOpen={() => setOpenId(s.id)} />
                     ) : (
                       <button className="cell cell-empty" onClick={() => setAdding({ date: d, shiftType: t })} aria-label={`הוספת משמרת ${SHIFT_LABEL[t]} ב-${d}`}>
                         הוספה

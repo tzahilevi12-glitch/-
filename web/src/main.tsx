@@ -1,9 +1,10 @@
 import './app.css';
-import './theme-tactical.css'; // dark tactical theme (overrides tokens + glass + motion)
+import './theme-tactical.css';
+import './theme-nextgen.css'; // dark tactical theme (overrides tokens + glass + motion)
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { getSession, isCommanderHash } from './api.ts';
-import { Toaster } from './ui.tsx';
+import { Ambient, Toaster } from './ui.tsx';
 import { EnterScreen } from './volunteer/EnterScreen.tsx';
 import { VolunteerApp } from './volunteer/VolunteerApp.tsx';
 import { GuestView } from './volunteer/GuestView.tsx';
@@ -66,6 +67,7 @@ function App() {
 
 createRoot(document.getElementById('root')!).render(
   <>
+    <Ambient />
     <App />
     <Toaster />
   </>,

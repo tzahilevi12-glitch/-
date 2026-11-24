@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Badge as BadgeKind, Certification } from './types.ts';
 import { CERT_LABEL, CERT_SHORT, fromMin, inWindow, range, windowOf } from './format.ts';
 import { CarIcon, CheckIcon, PoliceCarEmblem, ShieldIcon, TimerIcon, WheelIcon, XIcon } from './icons.tsx';
@@ -351,5 +351,55 @@ export function TimeSelect({ value, onChange, label }: { value: string; onChange
         ))}
       </select>
     </label>
+  );
+}
+
+/**
+ * Staffing progress bar: regular places filled out of the places required.
+ * Crimson when critical (urgent, or under half full), amber when partly short, emerald when full.
+ */
+export function StaffingBar({ filled, total, critical }: { filled: number; total: number; critical?: boolean }) {
+  const safeTotal = Math.max(1, total);
+  const ratio = Math.min(1, filled / safeTotal);
+  const tone = filled >= total ? 'full' : critical || ratio < 0.5 ? 'critical' : 'partial';
+  return (
+    <span className={`staff-meter tone-${tone}`}>
+      <span
+        className="staff-bar"
+        role="progressbar"
+        aria-label="איוש המשמרת"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={Math.min(filled, total)}
+      >
+        <span className="staff-fill" style={{ '--fill': ratio } as CSSProperties} />
+      </span>
+      <span className="staff-count" aria-hidden="true">
+        {Math.min(filled, total)}/{total}
+      </span>
+    </span>
+  );
+}
+
+/** Live status dot with an expanding sonar ping (urgent within 48 h / missing driver). */
+export function LiveBeacon({ title = 'דחוף' }: { title?: string }) {
+  return (
+    <span className="beacon" title={title} aria-hidden="true">
+      <span className="beacon-ping" />
+      <span className="beacon-ping beacon-ping-2" />
+      <span className="beacon-dot" />
+    </span>
+  );
+}
+
+/** Fixed background layer: drifting tactical grid and slow blue/crimson glow orbs (pure CSS). */
+export function Ambient() {
+  return (
+    <div className="ambient" aria-hidden="true">
+      <span className="ambient-orb orb-blue" />
+      <span className="ambient-orb orb-red" />
+      <span className="ambient-orb orb-cyan" />
+      <span className="ambient-grid" />
+    </div>
   );
 }

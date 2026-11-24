@@ -27,19 +27,26 @@ Development: `npm run dev` (API, restarts on change) and `npm run dev:web` (rebu
 
 ## Look and feel
 
-The app uses a dark "tactical command center" theme. The styles live in `web/src/theme-tactical.css`, which loads after `app.css` and only overrides it. To go back to the old light theme, remove the `import './theme-tactical.css'` line in `web/src/main.tsx`.
+The app uses a dark "Next-Gen Police Command & Control" theme. It's built in two CSS layers, each loaded after `app.css`, and they only change the look:
 
-- **Background and cards:** dark navy background with a soft blue and red glow. Cards are frosted-glass panels.
-- **Status colours:** green means full, amber means partly short, and red means urgent or a driver is needed.
-- **Hero banner:** "יחידת מתנדבים | תחנת חולון", with a drawn patrol car, a flashing lightbar and a shield.
-- **Graphics:** every picture is inline SVG. There are no image files and no external image links. The only outside resource is the Rubik font, and the app falls back to system fonts if it doesn't load.
-- **Animations:**
-  - **Pulsing red border:** shifts starting within 48 hours that are short of volunteers or a driver. Driver gaps further out get a steady red ring instead.
-  - **Cards fade in** one after another when the board loads or the week changes.
-  - **Small lift** on hover.
-  - **Gold shimmer** on the #1 leader.
-  - **Animated checkmark toast** after signing up or cancelling.
-  - **Reduced motion:** all animations switch off when the phone or computer is set to reduce motion.
+- `web/src/theme-tactical.css`: the dark navy palette, glass cards, status colours and hero banner.
+- `web/src/theme-nextgen.css`: the motion and depth layer.
+
+To turn the motion layer off, remove the `import './theme-nextgen.css'` line in `web/src/main.tsx`. Remove the `theme-tactical.css` import as well to go back to the original light design.
+
+- **Background:** an obsidian-navy gradient (`#040914` → `#0A1628`) with a slowly drifting tactical grid and soft blue and crimson glow orbs.
+- **Cards:** frosted glass (`rgba(13,25,48,0.72)`, 16px blur) with a top-edge highlight and a deep shadow. On hover they lift and their border glows blue.
+- **Hero banner:** "יחידת מתנדבים | תחנת חולון", with a red and blue LED lightbar that flashes, a light beam sweeping across it, and a matching glow on the banner. Behind the shield there's a turning radar sweep and pulsing rings.
+- **Staffing bar:** every shift card, and every cell in the commander grid, shows how many regular places are filled. Extra patrol cars aren't counted. The bar grows in when it appears and has a moving shimmer. Its colour:
+  - green when the shift is full;
+  - amber when it's partly short;
+  - red when it's critical (urgent, or less than half full).
+- **Cascade:** cards slide in one after another, 40 ms apart. This also happens when the commander switches weeks.
+- **Buttons:** a light beam sweeps across on hover, and the button springs down slightly when pressed.
+- **Live beacon:** a red dot with a sonar ping marks shifts starting within 48 hours that are short of volunteers or of a driver. It appears on the board, in the urgent banner and in the commander grid.
+- **Top 5:** gold, silver and bronze rows for places 1–3. #1 has a glowing aura and a floating crown, and each row grows slightly on hover.
+- **Performance:** animations only move or fade things (`transform`, `opacity`, `background-position`). All graphics are inline SVG or CSS, with no image files or image links. The only outside resource is the Rubik font, and the app falls back to system fonts if it doesn't load.
+- **Reduced motion:** the continuous effects stop when the phone or computer is set to reduce motion.
 
 ## Screens
 

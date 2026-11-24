@@ -88,9 +88,22 @@ export function ShieldEmblem({ size = 56 }: { size?: number }) {
 export function HeroBanner({ subtitle, compact }: { subtitle: string; compact?: boolean }) {
   return (
     <section className={`hero${compact ? ' hero-compact' : ''}`} aria-label="יחידת מתנדבים | תחנת חולון">
-      <span className="hero-lightbar" aria-hidden="true" />
+      <span className="hero-lightbar" aria-hidden="true">
+        <span className="lb-seg lb-seg-red" />
+        <span className="lb-seg lb-seg-blue" />
+        <span className="lb-sweep" />
+      </span>
+      <span className="hero-reflect" aria-hidden="true">
+        <span className="hr-red" />
+        <span className="hr-blue" />
+      </span>
       <div className="hero-text">
-        <ShieldEmblem size={compact ? 40 : 50} />
+        <span className="radar" aria-hidden="true">
+          <span className="radar-sweep" />
+          <span className="radar-ring" />
+          <span className="radar-ring radar-ring-2" />
+          <ShieldEmblem size={compact ? 40 : 50} />
+        </span>
         <div>
           <p className="hero-kicker">משטרה · מערך המתנדבים</p>
           <h2 className="hero-title">יחידת מתנדבים | תחנת חולון</h2>

@@ -4,7 +4,7 @@ import { MonthLeaders, UrgentBanner, useMonthLeaders } from './Engagement.tsx';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
-import { BadgeLegend, CarIcon, CertMark, DriverBadge, LoadState, ShiftBadge, ShortShiftBadge, toast, useLoad } from '../ui.tsx';
+import { BadgeLegend, CarIcon, CertMark, DriverBadge, LiveBeacon, LoadState, ShiftBadge, ShortShiftBadge, StaffingBar, toast, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
 
@@ -76,6 +76,7 @@ export function ShiftBoard({
 
   const urgent = data.shifts.filter((s) => s.urgent && (readOnly || (!s.myRegistration && !s.iHaveShiftThatDay)));
 
+  let cardIndex = 0; // drives the 40 ms staggered cascade
   const days = new Map<string, BoardShift[]>();
   for (const s of data.shifts) days.set(s.date, [...(days.get(s.date) ?? []), s]);
 
@@ -123,12 +124,18 @@ export function ShiftBoard({
               const soon = typeof s.startsInMinutes === 'number' && s.startsInMinutes > 0 && s.startsInMinutes <= 48 * 60;
               const alert = s.urgent || (soon && s.driverAlert === 'RED') ? ' is-urgent' : s.driverAlert === 'RED' && !full ? ' has-driver-gap' : '';
               return (
-                <li key={s.id} id={`shift-${s.id}`} className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}${alert}`}>
+                <li
+                  key={s.id}
+                  id={`shift-${s.id}`}
+                  className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}${alert}`}
+                  style={{ '--c': Math.min(cardIndex++, 18) } as CSSProperties}
+                >
                   <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
                     <ShiftTypeIcon type={s.shiftType} size={22} />
                   </span>
                   <div className="shift-main">
                     <div className="shift-name">
+                      {alert === ' is-urgent' && <LiveBeacon title={s.driverAlert === 'RED' ? 'דחוף · חסר נהג' : 'דחוף · ב-48 השעות הקרובות'} />}
                       {SHIFT_LABEL[s.shiftType]}
                       <span className="shift-hours">
                         <ClockIcon size={14} />
@@ -141,6 +148,11 @@ export function ShiftBoard({
                         {s.seatsLeft > 0 ? `נותרו ${s.seatsLeft} מתוך ${s.maxVolunteers} מקומות` : 'כל המקומות תפוסים'}
                       </span>
                     </div>
+                    <StaffingBar
+                      filled={Math.max(0, s.maxVolunteers - s.seatsLeft)}
+                      total={s.maxVolunteers}
+                      critical={alert === ' is-urgent'}
+                    />
                     <div className="shift-people">
                       <UsersIcon size={13} />
                       {s.registeredCount === 0 ? (

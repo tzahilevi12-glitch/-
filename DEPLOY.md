@@ -248,7 +248,7 @@ The site is called every day, but it sends the list only **every 2 days**. It re
 
 On a paid Render plan ("Starter"), the site never sleeps and sends on time by itself. Step 2 then isn't needed, but it doesn't hurt.
 
-## Updating to the dark "command center" design
+## Updating the design (dark "command center" / next-gen motion layer)
 
 You don't need new settings or database changes. Upload the new files the usual way and Render rebuilds the site on its own.
 

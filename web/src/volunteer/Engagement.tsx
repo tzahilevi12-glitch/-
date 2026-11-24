@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.ts';
 import type { BoardShift, LeaderboardEntry } from '../types.ts';
 import { SHIFT_LABEL, range, shortDay, todayLocal, addDays } from '../format.ts';
-import { CertMark, DriverBadge } from '../ui.tsx';
+import { CertMark, DriverBadge, LiveBeacon } from '../ui.tsx';
 import { CalendarIcon, ClockIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 
 /** "בעוד 5 שעות" / "בעוד יום ו-3 שעות" */
@@ -44,7 +44,10 @@ export function UrgentBanner({ shifts, onBook }: { shifts: BoardShift[]; onBook:
                 <ShiftTypeIcon type={s.shiftType} size={20} />
               </span>
               <div className="urgent-card-text">
-                <p className="urgent-card-title">משמרת {SHIFT_LABEL[s.shiftType]}</p>
+                <p className="urgent-card-title">
+                  <LiveBeacon />
+                  משמרת {SHIFT_LABEL[s.shiftType]}
+                </p>
                 <p className="urgent-card-meta">
                   <span className="meta-item">
                     <CalendarIcon size={14} />
@@ -102,6 +105,22 @@ function hoursText(minutes: number): string {
   return `${Number.isInteger(h) ? h : h.toFixed(1)} שעות`;
 }
 
+/** Small floating crown over the #1 medal (inline SVG). */
+function CrownArt() {
+  return (
+    <svg className="leaders-crown" viewBox="0 0 24 16" width="20" height="14" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fde68a" />
+          <stop offset="1" stopColor="#d97706" />
+        </linearGradient>
+      </defs>
+      <path d="M2 14 L1 4 L7 8 L12 1 L17 8 L23 4 L22 14 Z" fill="url(#crown-gold)" stroke="#fef3c7" strokeWidth="0.8" strokeLinejoin="round" />
+      <circle cx="12" cy="10" r="1.6" fill="#ef4444" />
+    </svg>
+  );
+}
+
 function LeadersList({ top }: { top: LeaderboardEntry[] }) {
   return (
     <ol className="leaders-list">
@@ -110,6 +129,7 @@ function LeadersList({ top }: { top: LeaderboardEntry[] }) {
           <span className="leaders-rank">
             {t.rank <= 3 ? (
               <span className="leaders-medal" aria-hidden="true">
+                {t.rank === 1 && <CrownArt />}
                 {MEDAL[t.rank - 1]}
               </span>
             ) : (
