@@ -92,6 +92,19 @@ To turn the motion layer off, remove the `import './theme-nextgen.css'` line in 
 | Telegram push | After every successful volunteer sign-up (including waitlist), the server sends a Hebrew message to the commanders' Telegram group (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; comma-separated IDs allowed). It is sent only after the registration is committed, is fire-and-forget with a 10 s timeout, and never fails the sign-up. Missing settings or Telegram errors are only logged (`src/lib/telegram.ts`). |
 | Concurrency | Every booking and seat change runs in a SERIALIZABLE transaction with retry. |
 
+### Aceternity-style layer
+
+`web/src/Aceternity.tsx` and `web/src/aceternity.css` add four Aceternity-style effects, built in plain React and CSS. They need no framer-motion, no Tailwind and no extra packages, so the Render build has no new dependencies:
+
+- **Background Beams:** glowing blue and red light rays travel along curved lines behind the hero shield, drawn as inline SVG.
+- **Card Spotlight:** a soft police-blue glow follows the mouse over shift cards, "My shifts", urgent cards, the commander grid and the sidebar panels. Shift cards also tilt slightly in 3D toward the cursor and lift. One listener on the page drives this (`<SpotlightTracker/>`), and touch screens are ignored.
+- **Moving Border:** a luminous comet travels around the 🏆 Top 5 widget (gold and cyan) and around every open shift that is missing a driver (crimson). In the commander grid it appears on urgent cells missing a driver. The comet only rotates, so the graphics card does the work.
+- **Springs:** the assistant drawer, its messages and the confirmation toasts enter and leave on real spring curves. These are CSS `linear()` easings sampled from a spring simulation, with a fallback for older browsers.
+
+While the commander's shortage PNG is being drawn, the decorative animations pause so the export gets the whole processor. With "reduce motion" switched on, the beams and moving borders stand still and the tilt is turned off.
+
+To turn the whole layer off, remove `import './aceternity.css'` and `<SpotlightTracker />` from `web/src/main.tsx`.
+
 ## 🤖 עוזרת חמ״ל (shift assistant)
 
 A floating button in the bottom-left corner of every screen (volunteer, guest view and commander) opens a chat drawer. On phones the button is a round icon and the drawer becomes a bottom sheet.

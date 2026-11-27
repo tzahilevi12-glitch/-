@@ -115,7 +115,7 @@ export function ShortShiftBadge({ startTime, endTime, compact }: { startTime?: s
 /** Legend for the badges, shown above rosters. */
 export function BadgeLegend() {
   return (
-    <div className="badge-legend" aria-label="מקרא">
+    <div className="badge-legend spotlight" aria-label="מקרא">
       <span className="badge-legend-title">מקרא:</span>
       <span className="cert-badge cert-blue">
         <CertShield />
@@ -263,22 +263,32 @@ export function toast(message: string, tone: 'ok' | 'error' = 'ok') {
 }
 
 export function Toaster() {
-  const [t, setT] = useState<{ message: string; tone: string; id: number } | null>(null);
+  // `leaving` keeps the toast mounted for its spring exit before it is removed
+  const [t, setT] = useState<{ message: string; tone: string; id: number; leaving?: boolean } | null>(null);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let gone: ReturnType<typeof setTimeout>;
     const on = (e: Event) => {
       const { message, tone } = (e as CustomEvent).detail;
-      setT({ message, tone, id: Date.now() });
       clearTimeout(timer);
-      timer = setTimeout(() => setT(null), 4200);
+      clearTimeout(gone);
+      setT({ message, tone, id: Date.now() });
+      timer = setTimeout(() => {
+        setT((cur) => (cur ? { ...cur, leaving: true } : cur));
+        gone = setTimeout(() => setT(null), 360);
+      }, 4200);
     };
     window.addEventListener('pv:toast', on);
-    return () => window.removeEventListener('pv:toast', on);
+    return () => {
+      window.removeEventListener('pv:toast', on);
+      clearTimeout(timer);
+      clearTimeout(gone);
+    };
   }, []);
   return (
     <div className="toast-region" role="status" aria-live="polite">
       {t && (
-        <div key={t.id} className={`toast toast-${t.tone}`}>
+        <div key={t.id} className={`toast toast-${t.tone}${t.leaving ? ' is-leaving' : ''}`}>
           {t.tone === 'error' ? (
             <svg className="toast-icon" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />

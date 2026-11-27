@@ -137,7 +137,7 @@ function ShiftCard({
   const free = waitlist || graceLeft > 0;
 
   return (
-    <li className={`my-card type-${s.shiftType.toLowerCase()}${waitlist ? ' is-pending' : ''}${requested ? ' is-cancel-requested' : ''}`}>
+    <li className={`my-card spotlight spotlight-tilt type-${s.shiftType.toLowerCase()}${waitlist ? ' is-pending' : ''}${requested ? ' is-cancel-requested' : ''}`}>
       <div className="my-card-head">
         <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
           <ShiftTypeIcon type={s.shiftType} size={22} />

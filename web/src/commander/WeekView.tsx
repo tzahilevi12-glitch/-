@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { MovingBorder } from '../Aceternity.tsx';
 import { api } from '../api.ts';
 import type { RosterShift, ShiftType, Week } from '../types.ts';
 import { SHIFT_LABEL, SHIFT_TYPES, addDays, range, shortDay, todayLocal, weekRangeLabel } from '../format.ts';
@@ -26,7 +27,7 @@ function Cell({ shift, onOpen, index = 0 }: { shift: RosterShift; onOpen: () => 
   return (
     <button
       style={{ '--c': index } as CSSProperties}
-      className={`cell lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}${urgent ? ' is-urgent' : ''}`}
+      className={`cell spotlight spotlight-tilt lamp-edge-${shift.driverAlert.toLowerCase()}${shift.published ? '' : ' is-draft'}${shift.status === 'COMPLETED' ? ' is-done' : ''}${urgent ? ' is-urgent' : ''}${urgent && shift.driverAlert === 'RED' ? ' mb-crimson' : ''}`}
       onClick={onOpen}
       aria-label={`${SHIFT_LABEL[shift.shiftType]} ${shift.date}: רשומים ${registered} מתוך ${shift.maxVolunteers} מבוקשים, ${green ? 'יש נהג' : 'אין נהג'}${cars.length ? `, ${cars.length} ניידות נוספות` : ''}`}
     >
@@ -34,6 +35,7 @@ function Cell({ shift, onOpen, index = 0 }: { shift: RosterShift; onOpen: () => 
         <UsersIcon size={14} />
         רשומים <strong>{registered}</strong> / מבוקש <strong>{shift.maxVolunteers}</strong>
       </span>
+      {urgent && shift.driverAlert === 'RED' && <MovingBorder tone="crimson" />}
       <StaffingBar filled={registered} total={shift.maxVolunteers} critical={urgent} />
       <span className="cell-top">
         {urgent && <LiveBeacon title={shift.driverAlert === 'RED' ? 'דחוף · חסר נהג' : 'דחוף · ב-48 השעות הקרובות'} />}
@@ -172,7 +174,7 @@ export function WeekView({ refreshKey, onChanged }: { refreshKey: number; onChan
         </div>
       </div>
 
-      <div className="summary-strip" aria-label="סיכום השבוע">
+      <div className="summary-strip spotlight" aria-label="סיכום השבוע">
         <span className="summary-item">
           <span className="summary-icon">
             <CalendarIcon size={18} />

@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import type { BoardShift, LeaderboardEntry } from '../types.ts';
 import { SHIFT_LABEL, range, shortDay, todayLocal, addDays } from '../format.ts';
 import { CertMark, DriverBadge, LiveBeacon } from '../ui.tsx';
+import { MovingBorder } from '../Aceternity.tsx';
 import { CalendarIcon, ClockIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 
 /** "בעוד 5 שעות" / "בעוד יום ו-3 שעות" */
@@ -38,7 +39,7 @@ export function UrgentBanner({ shifts, onBook }: { shifts: BoardShift[]; onBook:
       </h2>
       <ul className="urgent-list">
         {shifts.map((s) => (
-          <li key={s.id} className={`urgent-card type-${s.shiftType.toLowerCase()}`}>
+          <li key={s.id} className={`urgent-card spotlight spotlight-tilt type-${s.shiftType.toLowerCase()}`}>
             <div className="urgent-card-top">
               <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
                 <ShiftTypeIcon type={s.shiftType} size={20} />
@@ -166,7 +167,8 @@ export function MonthLeaders({ data, variant }: { data: MonthLeadersData | null;
   if (!data) return null;
   const id = `leaders-title-${variant}`;
   return (
-    <aside className={`leaders leaders-${variant}`} aria-labelledby={id}>
+    <aside className={`leaders leaders-${variant} spotlight mb-gold`} aria-labelledby={id}>
+      <MovingBorder tone="gold" />
       <h2 id={id} className="leaders-title">
         🏆 טופ 5 מובילים החודש - {monthName(data.month)}
       </h2>

@@ -2,6 +2,8 @@ import './app.css';
 import './theme-tactical.css'; // dark tactical theme (overrides tokens + glass)
 import './theme-nextgen.css'; // next-gen motion + depth layer
 import './assistant.css'; // 🤖 עוזרת חמ״ל
+import './aceternity.css'; // beams, spotlight, moving border, springs
+import { SpotlightTracker } from './Aceternity.tsx';
 import { AssistantWidget } from './Assistant.tsx';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -72,6 +74,7 @@ createRoot(document.getElementById('root')!).render(
     <Ambient />
     <App />
     <AssistantWidget />
+    <SpotlightTracker />
     <Toaster />
   </>,
 );

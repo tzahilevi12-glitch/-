@@ -1,3 +1,4 @@
+import { BackgroundBeams } from './Aceternity.tsx';
 /**
  * Tactical hero banner ("יחידת מתנדבים | תחנת חולון") with an inline SVG patrol car and a generic
  * police-style shield — drawn in code, so it loads instantly and never depends on an image file.
@@ -88,6 +89,7 @@ export function ShieldEmblem({ size = 56 }: { size?: number }) {
 export function HeroBanner({ subtitle, compact }: { subtitle: string; compact?: boolean }) {
   return (
     <section className={`hero${compact ? ' hero-compact' : ''}`} aria-label="יחידת מתנדבים | תחנת חולון">
+      <BackgroundBeams />
       <span className="hero-lightbar" aria-hidden="true">
         <span className="lb-seg lb-seg-red" />
         <span className="lb-seg lb-seg-blue" />

@@ -145,10 +145,18 @@ export function ShortagesButton({ weekStart }: { weekStart: string }) {
 
   /** Draw this week's report as a PNG (and the file name / data it belongs to). */
   async function buildPng(): Promise<{ png: Blob; name: string; data: Summary }> {
-    const data = await api<Summary>(`/admin/shortages?format=commander&week=${weekStart}`);
-    await ensureFonts();
-    const png = await canvasToPng(drawShortagesImage(data));
-    return { png, name: reportFileName(data.week?.from ?? weekStart), data };
+    // Pause the decorative animations (beams, moving borders) while the large image is drawn,
+    // so slower phones give the whole CPU to the export.
+    const root = document.documentElement;
+    root.dataset.fxPaused = 'on';
+    try {
+      const data = await api<Summary>(`/admin/shortages?format=commander&week=${weekStart}`);
+      await ensureFonts();
+      const png = await canvasToPng(drawShortagesImage(data));
+      return { png, name: reportFileName(data.week?.from ?? weekStart), data };
+    } finally {
+      delete root.dataset.fxPaused;
+    }
   }
 
   /**

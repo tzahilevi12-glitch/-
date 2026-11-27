@@ -1,0 +1,159 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Aceternity-style layer: Background Beams, Card Spotlight + 3D depth,
+   Moving Border, and spring motion. Pure CSS + inline SVG (see Aceternity.tsx).
+   Loaded last; it only restyles.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ───────── springs: CSS linear() curves sampled from a damped spring simulation ───────── */
+:root {
+  /* stiffness 260, damping 16 — lively, ~16% overshoot, settles in ~850 ms */
+  --spring-bouncy: linear(0.001, 0.059, 0.197, 0.377, 0.569, 0.748, 0.889, 1.009, 1.093, 1.142, 1.162, 1.16, 1.143, 1.116, 1.085, 1.054, 1.029, 1.007, 0.99, 0.98, 0.974, 0.973, 0.975, 0.979, 0.984, 0.989, 0.993, 0.997, 1, 1.003, 1.004, 1.004, 1.004, 1.004, 1.003, 1.002, 1.001, 1.001, 1, 1, 1);
+  /* stiffness 420, damping 30 — quick, ~3% overshoot, settles in ~430 ms */
+  --spring-snappy: linear(0.001, 0.029, 0.086, 0.175, 0.263, 0.37, 0.461, 0.561, 0.641, 0.723, 0.785, 0.847, 0.89, 0.932, 0.96, 0.986, 1.002, 1.016, 1.023, 1.029, 1.031, 1.031, 1.03, 1.028, 1.025, 1.022, 1.019, 1.016, 1.013, 1.011, 1.008, 1.006, 1.005, 1.003, 1.002, 1.001, 1, 1, 0.999, 0.999, 1);
+  --spring-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --spring-snappy: cubic-bezier(0.22, 1.2, 0.36, 1);
+  }
+}
+
+/* ───────── 1. Background Beams (hero) ───────── */
+.beams {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  border-radius: inherit;
+  /* strongest behind the shield (right side in RTL), fading toward the car */
+  contain: strict; /* repaints of the rays stay inside this layer */
+}
+.beams-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.beam, .beam-glow {
+  fill: none; stroke-linecap: round;
+  stroke-dasharray: 14 86;
+  animation-name: beam-travel; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.beam { stroke-width: 1.4; opacity: 0.9; }
+.beam-glow { stroke-width: 6; opacity: 0.2; }
+@keyframes beam-travel {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+.hero-text { position: relative; z-index: 1; }
+@media (min-width: 641px) {
+  .hero-car { position: relative; z-index: 1; }
+}
+
+/* ───────── 2. Card Spotlight + subtle 3D depth ───────── */
+.spotlight:not(.leaders-sidebar) { position: relative; }
+/* the glow layer is created only while the cursor is on the card (no idle cost) */
+.spotlight[data-spot='on'] { isolation: isolate; }
+.spotlight[data-spot='on']::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background:
+    radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), rgba(14, 165, 233, 0.17), transparent 58%),
+    radial-gradient(120px circle at var(--mx, 50%) var(--my, 50%), rgba(125, 211, 252, 0.1), transparent 70%);
+  animation: spot-in 320ms ease-out;
+}
+@keyframes spot-in { from { opacity: 0; } }
+.spotlight[data-spot='on'] { border-color: rgba(56, 189, 248, 0.5); }
+.spotlight-tilt {
+  transform-style: preserve-3d;
+  transition:
+    transform 260ms var(--spring-snappy),
+    border-color 220ms ease,
+    box-shadow 260ms ease;
+}
+.spotlight-tilt[data-spot='on'] {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(14, 165, 233, 0.22),
+    0 0 30px rgba(14, 165, 233, 0.14),
+    0 26px 50px -18px rgba(0, 0, 0, 0.9);
+}
+/* the urgent pulse keeps its own glow while hovered */
+.spotlight-tilt.is-urgent[data-spot='on'] { box-shadow: none; }
+
+/* ───────── 3. Moving Border (<MovingBorder/>) ─────────
+   The ring is masked down to a thin border; inside it a large pre-drawn conic "comet"
+   only rotates (transform), so the animation runs on the GPU without repainting. */
+.mb-ring {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: inherit; overflow: hidden;
+  padding: 1.5px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  container-type: size; /* lets the comet size itself to this card */
+  contain: strict;
+}
+.mb-comet {
+  position: absolute; top: 50%; left: 50%;
+  /* just big enough to sweep the corners: width + height ≥ the diagonal (small GPU texture) */
+  width: 260%;
+  width: calc(100cqw + 100cqh);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(transparent 0deg 220deg, var(--mb-a) 290deg, var(--mb-b) 330deg, transparent 360deg);
+  animation: mb-rotate var(--mb-speed, 5s) linear infinite;
+  will-change: transform;
+}
+@keyframes mb-rotate { to { transform: rotate(360deg); } }
+
+/* gold + cyan comets chasing each other around the Top 5 */
+.mb-ring-gold { --mb-speed: 6s; padding: 1.6px; }
+.mb-ring-gold .mb-comet {
+  background: conic-gradient(
+    transparent 0deg 20deg, #fbbf24 70deg, #fef3c7 85deg, transparent 120deg 200deg,
+    #22d3ee 250deg, #cffafe 265deg, transparent 300deg
+  );
+}
+.mb-gold { box-shadow: var(--shadow), 0 0 28px rgba(251, 191, 36, 0.1), 0 0 28px rgba(34, 211, 238, 0.06); }
+.leaders-card.mb-gold { position: relative; }
+/* subtle crimson glow on shifts missing a driver */
+.mb-ring-crimson { --mb-a: rgba(239, 68, 68, 0.95); --mb-b: rgba(253, 164, 175, 0.75); --mb-speed: 5.5s; }
+
+/* ───────── 4. spring entrances / exits: assistant + toasts ───────── */
+.assist-drawer {
+  transform: translateY(28px) scale(0.9);
+  transition:
+    opacity 180ms ease-in,
+    transform 260ms var(--spring-exit),
+    visibility 0s linear 260ms;
+}
+.assist-drawer.is-open {
+  transform: none;
+  transition:
+    opacity 200ms ease-out,
+    transform 850ms var(--spring-bouncy),
+    visibility 0s;
+}
+.assist-fab { transition: transform 600ms var(--spring-bouncy), box-shadow 220ms ease, opacity 200ms ease; }
+.assist-fab:active { transform: scale(0.92); transition: transform 90ms ease-out; }
+.assist-msg { animation: msg-in 700ms var(--spring-bouncy) backwards; }
+.assist-chip, .assist-action, .assist-send, .assist-close { transition-timing-function: var(--spring-snappy); transition-duration: 430ms; }
+
+.toast { animation: toast-spring-in 850ms var(--spring-bouncy) both; }
+.toast.is-leaving { animation: toast-spring-out 340ms var(--spring-exit) forwards; }
+@keyframes toast-spring-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toast-spring-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(20px) scale(0.94); }
+}
+
+/* paused while heavy work runs (e.g. drawing the shortages PNG) */
+[data-fx-paused] .beam, [data-fx-paused] .beam-glow, [data-fx-paused] .mb-comet,
+[data-fx-paused] .radar-sweep, [data-fx-paused] .ambient-grid::before, [data-fx-paused] .ambient-orb { animation-play-state: paused; }
+
+/* ───────── comfort ───────── */
+@media (prefers-reduced-motion: reduce) {
+  .beam, .beam-glow { animation: none; stroke-dasharray: none; opacity: 0.12; }
+  .beam-glow { opacity: 0; }
+  .mb-comet { animation: none; rotate: 35deg; }
+  .spotlight-tilt[data-spot='on'] { transform: none; }
+  .toast, .toast.is-leaving, .assist-msg { animation-duration: 1ms; }
+  .assist-drawer, .assist-drawer.is-open { transform: none; }
+}

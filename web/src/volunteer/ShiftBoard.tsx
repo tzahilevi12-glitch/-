@@ -4,6 +4,7 @@ import { MonthLeaders, UrgentBanner, useMonthLeaders } from './Engagement.tsx';
 import { api } from '../api.ts';
 import type { BoardShift, Certification, GuestShift } from '../types.ts';
 import { SHIFT_LABEL, addDays, dayLabel, isCertified, range, todayLocal } from '../format.ts';
+import { MovingBorder } from '../Aceternity.tsx';
 import { BadgeLegend, CarIcon, CertMark, DriverBadge, LiveBeacon, LoadState, ShiftBadge, ShortShiftBadge, StaffingBar, toast, useLoad } from '../ui.tsx';
 import { CalendarIcon, CheckIcon, ClockIcon, PlusIcon, ShiftTypeIcon, UsersIcon } from '../icons.tsx';
 import { SignUpSheet } from './SignUpSheet.tsx';
@@ -127,9 +128,10 @@ export function ShiftBoard({
                 <li
                   key={s.id}
                   id={`shift-${s.id}`}
-                  className={`shift-row type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}${alert}`}
+                  className={`shift-row spotlight spotlight-tilt type-${s.shiftType.toLowerCase()}${mine ? ' is-mine' : ''}${alert}${s.driverAlert === 'RED' && !full ? ' mb-crimson' : ''}`}
                   style={{ '--c': Math.min(cardIndex++, 18) } as CSSProperties}
                 >
+                  {s.driverAlert === 'RED' && !full && <MovingBorder tone="crimson" />}
                   <span className={`shift-icon type-icon-${s.shiftType.toLowerCase()}`}>
                     <ShiftTypeIcon type={s.shiftType} size={22} />
                   </span>
